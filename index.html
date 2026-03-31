@@ -48,7 +48,7 @@
            <p>${s.description || ''}</p>
            ${s.includes && s.includes.length ? `<ul class="service-includes">${s.includes.slice(0,3).map(i => `<li>${i}</li>`).join('')}</ul>` : ''}
            <div class="service-price">${s.price} ${s.priceUnit ? `<span>${s.priceUnit}</span>` : ''}</div>
-           <a href="booking.html" class="service-book-btn">Book This →</a>
+           <a href="booking.html?service=${encodeURIComponent(s.name)}" class="service-book-btn">Book This →</a>
          </div>
        `).join('');
      } catch (err) {
@@ -145,7 +145,7 @@
  <li>Nail trim</li>
  </ul>
  <div class="service-price">From €35 <span>/ session</span></div>
- <a href="booking.html" class="service-book-btn">Book This →</a>
+ <a href="booking.html?service=Bath+%26+Brush" class="service-book-btn">Book This →</a>
  </div>
 
  <div class="service-card popular">
@@ -160,7 +160,7 @@
  <li>Bandana or bow</li>
  </ul>
  <div class="service-price">From €55 <span>/ session</span></div>
- <a href="booking.html" class="service-book-btn">Book This →</a>
+ <a href="booking.html?service=Full+Groom" class="service-book-btn">Book This →</a>
  </div>
 
  <div class="service-card">
@@ -174,7 +174,7 @@
  <li>Lots of treats & praise</li>
  </ul>
  <div class="service-price">From €30 <span>/ session</span></div>
- <a href="booking.html" class="service-book-btn">Book This →</a>
+ <a href="booking.html?service=Puppy%27s+First+Groom" class="service-book-btn">Book This →</a>
  </div>
 
  <div class="service-card">
@@ -188,7 +188,7 @@
  <li>Nail trim</li>
  </ul>
  <div class="service-price">From €25 <span>/ session</span></div>
- <a href="booking.html" class="service-book-btn">Book This →</a>
+ <a href="booking.html?service=Mini+Tidy+Up" class="service-book-btn">Book This →</a>
  </div>
 
  </div>

@@ -66,15 +66,18 @@
  loadServiceOptions();
  });
 
- // Load service options from Firestore
+ // Load service options from Firestore, then pre-select from URL param
  async function loadServiceOptions() {
- if (!db) return;
+ const preselect = new URLSearchParams(window.location.search).get('service');
+ if (!db) {
+ // No Firebase — just try to pre-select from static options
+ if (preselect) preselectService(preselect);
+ return;
+ }
  try {
  const q = query(collection(db, "services"), orderBy("order", "asc"));
  const snapshot = await getDocs(q);
- if (snapshot.empty) return;
  const sel = document.getElementById('service');
- const existing = sel.innerHTML;
  sel.innerHTML = '<option value="">-- Select a service --</option>';
  snapshot.forEach(doc => {
  const s = doc.data();
@@ -85,13 +88,30 @@
  sel.appendChild(opt);
  }
  });
- // Always add a fallback option
  const other = document.createElement('option');
  other.value = 'Not sure — please advise';
  other.textContent = 'Not sure — please advise';
  sel.appendChild(other);
+ // Pre-select if service param exists
+ if (preselect) preselectService(preselect);
  } catch(err) {
  console.warn("Could not load service options from Firebase.", err);
+ if (preselect) preselectService(preselect);
+ }
+ }
+
+ function preselectService(name) {
+ const sel = document.getElementById('service');
+ // Try exact match first, then case-insensitive
+ for (const opt of sel.options) {
+ if (opt.value === name || opt.value.toLowerCase() === name.toLowerCase()) {
+ sel.value = opt.value;
+ // Highlight the field briefly so user notices it's been filled
+ sel.style.borderColor = 'var(--pink)';
+ sel.style.background = 'rgba(214,51,132,0.04)';
+ setTimeout(() => { sel.style.borderColor = ''; sel.style.background = ''; }, 2000);
+ break;
+ }
  }
  }
 
