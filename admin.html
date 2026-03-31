@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>Admin | Pawlished Paws</title>
+ <link rel="preconnect" href="https://fonts.googleapis.com">
+ <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+ <link rel="stylesheet" href="css/style.css">
+
+ <!-- Firebase SDK -->
+ <script type="module">
+ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+ import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
+ import { getFirestore, collection, getDocs, doc, updateDoc, orderBy, query } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+
+ const firebaseConfig = {
+ apiKey: "AIzaSyBhHj79WRYLOTDsRMx6wFjhtgSlq5VLi6Q",
+ authDomain: "pawlished-paws.firebaseapp.com",
+ projectId: "pawlished-paws",
+ storageBucket: "pawlished-paws.firebasestorage.app",
+ messagingSenderId: "482052040342",
+ appId: "1:482052040342:web:07f8a00394dcbe3f9004b7",
+ measurementId: "G-GGWPEHR3CB"
+ };
+
+ let app, auth, db;
+ const demoMode = firebaseConfig.apiKey.includes("YOUR_");
+
+ if (!demoMode) {
+ app = initializeApp(firebaseConfig);
+ auth = getAuth(app);
+ db = getFirestore(app);
+ }
+
+ // ---- Auth State ----
+ window.addEventListener('DOMContentLoaded', () => {
+ if (demoMode) {
+ showDemoMode();
+ return;
+ }
+
+ onAuthStateChanged(auth, (user) => {
+ if (user) {
+ showDashboard(user);
+ loadBookings();
+ } else {
+ showLogin();
+ }
+ });
+
+ // Login form
+ document.getElementById('loginForm').addEventListener('submit', async (e) => {
+ e.preventDefault();
+ const email = document.getElementById('loginEmail').value;
+ const password = document.getElementById('loginPassword').value;
+ const errEl = document.getElementById('loginError');
+ errEl.textContent = '';
+ try {
+ await signInWithEmailAndPassword(auth, email, password);
+ } catch (err) {
+ errEl.textContent = 'Incorrect email or password. Please try again.';
+ }
+ });
+
+ // Logout
+ document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
+ });
+
+ function showLogin() {
+ document.getElementById('loginScreen').style.display = 'flex';
+ document.getElementById('dashboardScreen').style.display = 'none';
+ }
+
+ function showDashboard(user) {
+ document.getElementById('loginScreen').style.display = 'none';
+ document.getElementById('dashboardScreen').style.display = 'block';
+ document.getElementById('adminEmail').textContent = user.email;
+ }
+
+ function showDemoMode() {
+ document.getElementById('loginScreen').style.display = 'none';
+ document.getElementById('dashboardScreen').style.display = 'block';
+ document.getElementById('adminEmail').textContent = 'demo@pawlishedpaws.ie';
+ loadDemoBookings();
+ document.getElementById('logoutBtn').style.display = 'none';
+ }
+
+ // ---- Load Real Bookings from Firestore ----
+ async function loadBookings() {
+ const loadingEl = document.getElementById('loadingState');
+ const emptyEl = document.getElementById('emptyState');
+ const tableEl = document.getElementById('bookingsTable');
+ const tbody = document.getElementById('bookingsTbody');
+
+ loadingEl.style.display = 'block';
+
+ try {
+ const q = query(collection(db, "bookings"), orderBy("createdAt", "desc"));
+ const snapshot = await getDocs(q);
+
+ loadingEl.style.display = 'none';
+
+ if (snapshot.empty) {
+ emptyEl.style.display = 'block';
+ return;
+ }
+
+ tableEl.style.display = 'table';
+ tbody.innerHTML = '';
+
+ let pending = 0, confirmed = 0, total = 0;
+
+ snapshot.forEach((docSnap) => {
+ const d = docSnap.data();
+ total++;
+ if (d.status === 'pending') pending++;
+ if (d.status === 'confirmed') confirmed++;
+
+ const date = d.preferredDate || '—';
+ const time = d.preferredTime || '—';
+
+ tbody.innerHTML += `
+ <tr>
+ <td><strong>${d.ownerName || '—'}</strong><br><span style="font-size:0.8rem;color:var(--grey-text)">${d.ownerEmail || ''}</span></td>
+ <td>${d.dogName || '—'}<br><span style="font-size:0.8rem;color:var(--grey-text)">${d.dogBreed || ''} · ${d.dogSize || ''}</span></td>
+ <td>${formatService(d.service)}</td>
+ <td>${date}<br><span style="font-size:0.8rem;color:var(--grey-text)">${time}</span></td>
+ <td><span class="status-badge status-${d.status || 'pending'}">${d.status || 'pending'}</span></td>
+ <td>
+ <select onchange="updateStatus('${docSnap.id}', this.value)" style="padding:6px 10px; border-radius:8px; border:1px solid #e8d5f0; font-family:inherit; font-size:0.85rem; cursor:pointer;">
+ <option value="pending" ${d.status==='pending'?'selected':''}>Pending</option>
+ <option value="confirmed" ${d.status==='confirmed'?'selected':''}>Confirmed</option>
+ <option value="completed" ${d.status==='completed'?'selected':''}>Completed</option>
+ </select>
+ </td>
+ </tr>
+ `;
+ });
+
+ document.getElementById('statTotal').textContent = total;
+ document.getElementById('statPending').textContent = pending;
+ document.getElementById('statConfirmed').textContent = confirmed;
+
+ } catch (err) {
+ loadingEl.style.display = 'none';
+ console.error("Error loading bookings:", err);
+ emptyEl.innerHTML = '<div class="empty-state-icon"></div><p>Error loading bookings. Check your Firestore rules.</p>';
+ emptyEl.style.display = 'block';
+ }
+ }
+
+ // ---- Update booking status ----
+ window.updateStatus = async (docId, newStatus) => {
+ if (demoMode) return;
+ try {
+ await updateDoc(doc(db, "bookings", docId), { status: newStatus });
+ } catch (err) {
+ console.error("Update failed:", err);
+ }
+ };
+
+ // ---- Demo Mode sample data ----
+ function loadDemoBookings() {
+ const tbody = document.getElementById('bookingsTbody');
+ document.getElementById('loadingState').style.display = 'none';
+ document.getElementById('bookingsTable').style.display = 'table';
+ document.getElementById('statTotal').textContent = '3';
+ document.getElementById('statPending').textContent = '2';
+ document.getElementById('statConfirmed').textContent = '1';
+
+ const demos = [
+ { name: 'Sarah Murphy', email: 'sarah@example.com', dog: 'Biscuit', breed: 'Golden Retriever', size: 'large', service: 'full-groom', date: '2025-04-10', time: '10:00am', status: 'confirmed' },
+ { name: 'Declan Farrell', email: 'declan@example.com', dog: 'Rex', breed: 'Collie Mix', size: 'large', service: 'bath-brush', date: '2025-04-11', time: '2:00pm', status: 'pending' },
+ { name: 'Claire O\'Brien', email: 'claire@example.com', dog: 'Bella', breed: 'Cockapoo', size: 'medium', service: 'full-groom', date: '2025-04-12', time: '11:00am', status: 'pending' },
+ ];
+
+ demos.forEach(d => {
+ tbody.innerHTML += `
+ <tr>
+ <td><strong>${d.name}</strong><br><span style="font-size:0.8rem;color:var(--grey-text)">${d.email}</span></td>
+ <td>${d.dog}<br><span style="font-size:0.8rem;color:var(--grey-text)">${d.breed} · ${d.size}</span></td>
+ <td>${formatService(d.service)}</td>
+ <td>${d.date}<br><span style="font-size:0.8rem;color:var(--grey-text)">${d.time}</span></td>
+ <td><span class="status-badge status-${d.status}">${d.status}</span></td>
+ <td><span style="font-size:0.8rem;color:var(--grey-text)">Demo mode</span></td>
+ </tr>
+ `;
+ });
+
+ const demoBanner = document.createElement('div');
+ demoBanner.className = 'firebase-status';
+ demoBanner.style.margin = '0 0 20px';
+ demoBanner.innerHTML = ' <span><strong>Demo mode.</strong> Paste your Firebase config into admin.html to see real bookings and enable login.</span>';
+ document.querySelector('.admin-dashboard').insertBefore(demoBanner, document.querySelector('.dashboard-header'));
+ }
+
+ function formatService(s) {
+ const map = { 'full-groom': 'Full Groom', 'bath-brush': 'Bath & Brush', 'puppy-groom': "Puppy's First Groom", 'tidy-up': 'Tidy Up', 'unsure': 'Unsure — advise' };
+ return map[s] || s || '—';
+ }
+ </script>
+</head>
+<body>
+
+ <!-- ============ LOGIN SCREEN ============ -->
+ <div class="admin-login" id="loginScreen" style="display:none;">
+ <div class="login-box">
+ <img src="images/logo.jpg" alt="Pawlished Paws">
+ <h2>Admin Login</h2>
+ <p>Sign in to manage your bookings</p>
+ <form id="loginForm">
+ <div class="form-group" style="text-align:left;">
+ <label for="loginEmail">Email</label>
+ <input type="email" id="loginEmail" placeholder="hello.pawlishedpaws@gmail.com" required>
+ </div>
+ <div class="form-group" style="text-align:left; margin-bottom:24px;">
+ <label for="loginPassword">Password</label>
+ <input type="password" id="loginPassword" placeholder="Your password" required>
+ </div>
+ <p id="loginError" style="color: #e11d48; font-size:0.88rem; margin-bottom:12px;"></p>
+ <button type="submit" class="btn btn-primary" style="width:100%;">Sign In </button>
+ </form>
+ <p style="margin-top:20px; font-size:0.82rem; color:var(--grey-text);">This is a private admin area. Not looking for this? <a href="index.html" style="color:var(--pink);">Go to the main site →</a></p>
+ </div>
+ </div>
+
+ <!-- ============ DASHBOARD ============ -->
+ <div id="dashboardScreen" style="display:none;">
+
+ <!-- Navbar -->
+ <nav>
+ <div class="nav-logo">
+ <img src="images/logo.jpg" alt="Pawlished Paws Logo">
+ <span>Pawlished <em>Paws</em> — Admin</span>
+ </div>
+ <ul class="nav-links">
+ <li><a href="index.html">← Back to Site</a></li>
+ <li style="font-size:0.85rem; color:var(--grey-text);" id="adminEmail"></li>
+ <li><button id="logoutBtn" class="btn btn-outline" style="padding:8px 18px; font-size:0.85rem;">Sign Out</button></li>
+ </ul>
+ </nav>
+
+ <div class="admin-dashboard">
+
+ <div class="dashboard-header">
+ <h1>Bookings Dashboard </h1>
+ <button onclick="location.reload()" class="btn btn-outline" style="padding:10px 20px; font-size:0.9rem;">↻ Refresh</button>
+ </div>
+
+ <!-- Stats -->
+ <div class="dashboard-stats">
+ <div class="dash-stat">
+ <div class="dash-stat-num" id="statTotal">—</div>
+ <div class="dash-stat-label">Total Bookings</div>
+ </div>
+ <div class="dash-stat" style="border-left-color: #F59E0B;">
+ <div class="dash-stat-num" style="color:#F59E0B;" id="statPending">—</div>
+ <div class="dash-stat-label">Pending Confirmation</div>
+ </div>
+ <div class="dash-stat" style="border-left-color: #10B981;">
+ <div class="dash-stat-num" style="color:#10B981;" id="statConfirmed">—</div>
+ <div class="dash-stat-label">Confirmed</div>
+ </div>
+ </div>
+
+ <!-- Bookings Table -->
+ <div class="bookings-table-wrap">
+ <div class="bookings-table-header">
+ <h3>All Bookings</h3>
+ <span style="font-size:0.85rem; color:var(--grey-text);">Newest first — update status using the dropdown</span>
+ </div>
+
+ <!-- Loading -->
+ <div id="loadingState" style="text-align:center; padding:40px; color:var(--grey-text);">
+ <div style="font-size:2rem; margin-bottom:10px;"></div>
+ Loading bookings...
+ </div>
+
+ <!-- Empty state -->
+ <div id="emptyState" class="empty-state" style="display:none;">
+ <div class="empty-state-icon"></div>
+ <p>No bookings yet. When clients book through the website, they'll appear here.</p>
+ </div>
+
+ <!-- Table -->
+ <table id="bookingsTable" style="display:none;">
+ <thead>
+ <tr>
+ <th>Owner</th>
+ <th>Dog</th>
+ <th>Service</th>
+ <th>Date & Time</th>
+ <th>Status</th>
+ <th>Update Status</th>
+ </tr>
+ </thead>
+ <tbody id="bookingsTbody"></tbody>
+ </table>
+ </div>
+
+ <p style="text-align:center; margin-top:24px; font-size:0.85rem; color:var(--grey-text);">
+ Need to contact a client? Click their email in the table, or call them directly.
+ </p>
+ </div>
+ </div>
+
+</body>
+</html>

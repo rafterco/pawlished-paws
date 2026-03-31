@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>Contact | Pawlished Paws</title>
+ <meta name="description" content="Contact Pawlished Paws dog grooming in Enniscrone, Co. Sligo. Call, email, or send a message and we'll get back to you.">
+ <link rel="preconnect" href="https://fonts.googleapis.com">
+ <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+ <link rel="stylesheet" href="css/style.css">
+ <style>
+ .hours-grid {
+ display: grid;
+ grid-template-columns: 1fr 1fr;
+ gap: 6px;
+ margin-top: 16px;
+ }
+ .hours-row {
+ display: contents;
+ }
+ .hours-day { color: rgba(255,255,255,0.7); font-size: 0.88rem; }
+ .hours-time { color: white; font-weight: 700; font-size: 0.88rem; }
+ .contact-success {
+ display: none;
+ text-align: center;
+ padding: 30px;
+ background: var(--pink-pale);
+ border-radius: 12px;
+ }
+ </style>
+</head>
+<body>
+
+ <!-- NAVBAR -->
+ <nav>
+ <div class="nav-logo">
+ <img src="images/logo.jpg" alt="Pawlished Paws Logo">
+ <span>Pawlished <em>Paws</em></span>
+ </div>
+ <ul class="nav-links" id="navLinks">
+ <li><a href="index.html">Home</a></li>
+ <li><a href="services.html">Services</a></li>
+ <li><a href="booking.html">Book</a></li>
+ <li><a href="contact.html" class="active">Contact</a></li>
+ <li><a href="booking.html" class="btn btn-primary nav-cta">Book Now </a></li>
+ </ul>
+ <button class="hamburger" id="hamburger" aria-label="Menu">
+ <span></span><span></span><span></span>
+ </button>
+ </nav>
+
+ <!-- HERO -->
+ <div class="contact-hero">
+ <span class="section-tag">Get In Touch</span>
+ <h1 style="color: var(--purple);">We'd Love to <span style="color:var(--pink);">Hear from You</span></h1>
+ <p style="max-width:480px; margin: 16px auto 0; font-size:1.05rem;">Have a question before you book? Want to know if we're right for your dog? Just get in touch — we're always happy to chat.</p>
+ </div>
+
+ <!-- CONTACT GRID -->
+ <div class="contact-grid">
+
+ <!-- Left: Info Card -->
+ <div>
+ <div class="contact-info-card">
+ <h3>Contact Information</h3>
+
+ <div class="contact-detail">
+ <div class="contact-icon"></div>
+ <div class="contact-detail-text">
+ <strong>Location</strong>
+ <span>Carrowhubbuck South<br>Inishcrone (Enniscrone)<br>Co. Sligo, Ireland</span>
+ </div>
+ </div>
+
+ <div class="contact-detail">
+ <div class="contact-icon"></div>
+ <div class="contact-detail-text">
+ <strong>Phone</strong>
+ <a href="tel:+353858168317">+353 85 816 8317</a>
+ </div>
+ </div>
+
+ <div class="contact-detail">
+ <div class="contact-icon"></div>
+ <div class="contact-detail-text">
+ <strong>Email</strong>
+ <a href="mailto:hello.pawlishedpaws@gmail.com">hello.pawlishedpaws@gmail.com</a>
+ </div>
+ </div>
+
+ <div class="contact-detail">
+ <div class="contact-icon"></div>
+ <div class="contact-detail-text">
+ <strong>Facebook</strong>
+ <a href="https://www.facebook.com/profile.php?id=61586383233480" target="_blank">Message us on Facebook</a>
+ </div>
+ </div>
+
+ <!-- Hours -->
+ <div style="margin-top: 28px; padding-top: 24px; border-top: 1px solid rgba(255,255,255,0.15);">
+ <strong style="color:white; font-size:0.85rem; text-transform:uppercase; letter-spacing:0.5px;">Opening Hours</strong>
+ <div class="hours-grid">
+ <span class="hours-day">Monday</span>
+ <span class="hours-time">08:00 – 17:30</span>
+ <span class="hours-day">Tuesday</span>
+ <span class="hours-time">08:00 – 17:30</span>
+ <span class="hours-day">Wednesday</span>
+ <span class="hours-time">08:00 – 17:30</span>
+ <span class="hours-day">Thursday</span>
+ <span class="hours-time">08:00 – 17:30</span>
+ <span class="hours-day">Friday</span>
+ <span class="hours-time">08:00 – 17:30</span>
+ <span class="hours-day">Saturday</span>
+ <span class="hours-time">Closed</span>
+ <span class="hours-day">Sunday</span>
+ <span class="hours-time">Closed</span>
+ </div>
+ <p style="color:rgba(255,255,255,0.6); font-size:0.8rem; margin-top:12px;">Hours are approximate — please book in advance to guarantee your slot.</p>
+ </div>
+ </div>
+
+ <!-- Map -->
+ <div class="map-embed" style="margin-top:24px; border-radius: var(--radius); overflow:hidden; box-shadow: var(--shadow);">
+ <iframe
+ src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2384.0!2d-9.0980!3d54.2130!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zNTTCsDEyJzQ2LjgiTiA5wrAwNSc1Mi44Ilc!5e0!3m2!1sen!2sie!4v1700000000000!5m2!1sen!2sie"
+ width="100%"
+ height="280"
+ style="border:0;"
+ allowfullscreen=""
+ loading="lazy"
+ referrerpolicy="no-referrer-when-downgrade"
+ title="Pawlished Paws location in Enniscrone, Co. Sligo">
+ </iframe>
+ </div>
+ </div>
+
+ <!-- Right: Contact Form -->
+ <div class="contact-form-card">
+ <h3>Send Us a Message</h3>
+ <p style="margin-bottom:28px; font-size:0.95rem;">We'll get back to you within one working day. If it's urgent, give us a call!</p>
+
+ <div class="contact-success" id="contactSuccess">
+ <div style="font-size:2.5rem; margin-bottom:12px;"></div>
+ <h3 style="color:var(--purple); margin-bottom:8px;">Message Sent!</h3>
+ <p>Thanks for reaching out. We'll get back to you soon.</p>
+ </div>
+
+ <form id="contactForm">
+ <div class="form-row">
+ <div class="form-group">
+ <label for="contactName">Your Name *</label>
+ <input type="text" id="contactName" name="contactName" placeholder="e.g. Sarah Murphy" required>
+ </div>
+ <div class="form-group">
+ <label for="contactPhone">Phone</label>
+ <input type="tel" id="contactPhone" name="contactPhone" placeholder="Optional">
+ </div>
+ </div>
+ <div class="form-group">
+ <label for="contactEmail">Email Address *</label>
+ <input type="email" id="contactEmail" name="contactEmail" placeholder="you@example.com" required>
+ </div>
+ <div class="form-group">
+ <label for="contactSubject">Subject</label>
+ <select id="contactSubject" name="contactSubject">
+ <option value="">-- What's this about? --</option>
+ <option value="booking-query">Booking Query</option>
+ <option value="pricing">Pricing Question</option>
+ <option value="my-dog">Question About My Dog</option>
+ <option value="other">Something Else</option>
+ </select>
+ </div>
+ <div class="form-group">
+ <label for="contactMessage">Your Message *</label>
+ <textarea id="contactMessage" name="contactMessage" rows="5" placeholder="Tell us a bit about your dog and what you're looking for..." required></textarea>
+ </div>
+ <button type="submit" class="btn btn-primary" style="width:100%; padding:15px;">Send Message </button>
+ </form>
+ </div>
+
+ </div>
+
+ <!-- CTA Banner -->
+ <section class="cta-banner" style="margin-top: 0;">
+ <h2>Ready to Book?</h2>
+ <p>Skip the message queue — book your dog's session directly online.</p>
+ <a href="booking.html" class="btn btn-primary">Book Online </a>
+ </section>
+
+ <!-- FOOTER -->
+ <footer>
+ <div class="footer-grid">
+ <div class="footer-brand">
+ <img src="images/logo.jpg" alt="Pawlished Paws">
+ <p style="color:white; font-weight:700; font-size:1rem; margin-top:8px;">Pawlished Paws</p>
+ <p>Calm, one-to-one dog grooming in Enniscrone, Co. Sligo. All breeds welcome.</p>
+ </div>
+ <div class="footer-col">
+ <h4>Quick Links</h4>
+ <ul>
+ <li><a href="index.html">Home</a></li>
+ <li><a href="services.html">Services & Pricing</a></li>
+ <li><a href="booking.html">Book Online</a></li>
+ <li><a href="contact.html">Contact Us</a></li>
+ </ul>
+ </div>
+ <div class="footer-col">
+ <h4>Get In Touch</h4>
+ <div class="footer-contact-item"> Carrowhubbuck South, Inishcrone, Ireland</div>
+ <div class="footer-contact-item"> <a href="tel:+353858168317">+353 85 816 8317</a></div>
+ <div class="footer-contact-item"> <a href="mailto:hello.pawlishedpaws@gmail.com">hello.pawlishedpaws@gmail.com</a></div>
+ </div>
+ </div>
+ <div class="footer-bottom">
+ <span>© 2025 Pawlished Paws. All rights reserved.</span>
+ <span>Made with in Enniscrone, Ireland</span>
+ </div>
+ </footer>
+
+ <script>
+ document.getElementById('hamburger').addEventListener('click', function() {
+ document.getElementById('navLinks').classList.toggle('open');
+ });
+
+ document.getElementById('contactForm').addEventListener('submit', function(e) {
+ e.preventDefault();
+ this.style.display = 'none';
+ document.getElementById('contactSuccess').style.display = 'block';
+ // In production: wire this up to EmailJS, a Cloud Function, or Formspree
+ });
+ </script>
+</body>
+</html>

@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>Book a Grooming Session | Pawlished Paws</title>
+ <meta name="description" content="Book a dog grooming session at Pawlished Paws, Enniscrone. Easy online booking — pick your service and your preferred time.">
+ <link rel="preconnect" href="https://fonts.googleapis.com">
+ <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+ <link rel="stylesheet" href="css/style.css">
+
+ <!--
+ ============================================================
+ FIREBASE SETUP INSTRUCTIONS
+ ============================================================
+ 1. Go to console.firebase.google.com
+ 2. Create a new project (or open your existing one)
+ 3. Click "Web" app icon to add a web app
+ 4. Copy your config object and paste it below,
+ replacing the placeholder values
+ 5. In Firestore, create a collection called "bookings"
+ 6. Set Firestore rules to allow writes (at minimum):
+ rules_version = '2';
+ service cloud.firestore {
+ match /databases/{database}/documents {
+ match /bookings/{doc} {
+ allow create: if true;
+ allow read, update, delete: if request.auth != null;
+ }
+ }
+ }
+ ============================================================
+ -->
+
+ <!-- Firebase SDK -->
+ <script type="module">
+ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+ import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+
+ const firebaseConfig = {
+ apiKey: "AIzaSyBhHj79WRYLOTDsRMx6wFjhtgSlq5VLi6Q",
+ authDomain: "pawlished-paws.firebaseapp.com",
+ projectId: "pawlished-paws",
+ storageBucket: "pawlished-paws.firebasestorage.app",
+ messagingSenderId: "482052040342",
+ appId: "1:482052040342:web:07f8a00394dcbe3f9004b7",
+ measurementId: "G-GGWPEHR3CB"
+ };
+
+ let db = null;
+ let firebaseReady = false;
+
+ try {
+ const app = initializeApp(firebaseConfig);
+ db = getFirestore(app);
+ firebaseReady = !firebaseConfig.apiKey.includes("YOUR_");
+ } catch(e) {
+ console.warn("Firebase not configured yet:", e);
+ }
+
+ // Show setup banner if config not yet set
+ window.addEventListener('DOMContentLoaded', () => {
+ if (!firebaseReady) {
+ document.getElementById('firebaseSetupBanner').style.display = 'flex';
+ }
+ });
+
+ // Handle form submission
+ document.addEventListener('DOMContentLoaded', () => {
+ const form = document.getElementById('bookingForm');
+ form.addEventListener('submit', async (e) => {
+ e.preventDefault();
+
+ const submitBtn = document.getElementById('submitBtn');
+ submitBtn.textContent = 'Sending...';
+ submitBtn.disabled = true;
+
+ const bookingData = {
+ // Owner details
+ ownerName: form.ownerName.value,
+ ownerEmail: form.ownerEmail.value,
+ ownerPhone: form.ownerPhone.value,
+ // Dog details
+ dogName: form.dogName.value,
+ dogBreed: form.dogBreed.value,
+ dogSize: form.dogSize.value,
+ // Appointment
+ service: form.service.value,
+ preferredDate: form.preferredDate.value,
+ preferredTime: form.preferredTime.value,
+ notes: form.notes.value,
+ // Meta
+ status: 'pending',
+ createdAt: serverTimestamp ? serverTimestamp() : new Date().toISOString(),
+ source: 'website'
+ };
+
+ try {
+ if (firebaseReady && db) {
+ await addDoc(collection(db, "bookings"), bookingData);
+ } else {
+ // Simulate delay for demo
+ await new Promise(r => setTimeout(r, 1200));
+ }
+ // Show success
+ form.style.display = 'none';
+ document.getElementById('successMessage').style.display = 'block';
+ } catch (err) {
+ console.error("Error saving booking:", err);
+ submitBtn.textContent = 'Submit Booking Request';
+ submitBtn.disabled = false;
+ alert('Something went wrong. Please try again or call us directly on +353 85 816 8317');
+ }
+ });
+ });
+ </script>
+</head>
+<body>
+
+ <!-- NAVBAR -->
+ <nav>
+ <div class="nav-logo">
+ <img src="images/logo.jpg" alt="Pawlished Paws Logo">
+ <span>Pawlished <em>Paws</em></span>
+ </div>
+ <ul class="nav-links" id="navLinks">
+ <li><a href="index.html">Home</a></li>
+ <li><a href="services.html">Services</a></li>
+ <li><a href="booking.html" class="active">Book</a></li>
+ <li><a href="contact.html">Contact</a></li>
+ <li><a href="booking.html" class="btn btn-primary nav-cta">Book Now </a></li>
+ </ul>
+ <button class="hamburger" id="hamburger" aria-label="Menu">
+ <span></span><span></span><span></span>
+ </button>
+ </nav>
+
+ <!-- HERO -->
+ <div class="booking-hero">
+ <span class="section-tag">Online Booking</span>
+ <h1>Book Your Dog's <span>Pamper Session</span></h1>
+ <p style="max-width:500px; margin: 16px auto 0; font-size:1.05rem; color: var(--purple-mid);">Fill in the details below and we'll confirm your appointment within 24 hours. Can't wait? Call us on <a href="tel:+353858168317" style="color:var(--pink); font-weight:700;">+353 85 816 8317</a></p>
+ </div>
+
+ <!-- BOOKING FORM -->
+ <div class="booking-container">
+
+ <!-- Firebase setup notice (hidden when configured) -->
+ <div class="firebase-status" id="firebaseSetupBanner" style="display:none;">
+ <span><strong>Firebase not yet connected.</strong> The form will work in demo mode — bookings won't be saved until you paste your Firebase config into booking.html. <a href="#" style="color:inherit; text-decoration:underline;">See instructions in the code.</a></span>
+ </div>
+
+ <div class="booking-form">
+
+ <!-- Success Message -->
+ <div class="success-message" id="successMessage">
+ <div class="success-icon"></div>
+ <h3>Booking Request Sent!</h3>
+ <p style="margin-bottom:24px;">Thanks for booking with Pawlished Paws! We'll confirm your appointment within 24 hours via email or phone.</p>
+ <p style="font-size:0.9rem; color: var(--grey-text);">If you need to get in touch sooner, call us on <strong>+353 85 816 8317</strong></p>
+ <a href="index.html" class="btn btn-primary" style="margin-top:24px;">Back to Home </a>
+ </div>
+
+ <!-- Form -->
+ <form id="bookingForm">
+
+ <div class="form-section-title"> Your Details</div>
+
+ <div class="form-row">
+ <div class="form-group">
+ <label for="ownerName">Your Name *</label>
+ <input type="text" id="ownerName" name="ownerName" placeholder="e.g. Sarah Murphy" required>
+ </div>
+ <div class="form-group">
+ <label for="ownerPhone">Phone Number *</label>
+ <input type="tel" id="ownerPhone" name="ownerPhone" placeholder="e.g. 085 123 4567" required>
+ </div>
+ </div>
+
+ <div class="form-group">
+ <label for="ownerEmail">Email Address *</label>
+ <input type="email" id="ownerEmail" name="ownerEmail" placeholder="you@example.com" required>
+ </div>
+
+ <div class="form-section-title"> Your Dog's Details</div>
+
+ <div class="form-row">
+ <div class="form-group">
+ <label for="dogName">Dog's Name *</label>
+ <input type="text" id="dogName" name="dogName" placeholder="e.g. Biscuit" required>
+ </div>
+ <div class="form-group">
+ <label for="dogBreed">Breed *</label>
+ <input type="text" id="dogBreed" name="dogBreed" placeholder="e.g. Golden Retriever" required>
+ </div>
+ </div>
+
+ <div class="form-group">
+ <label for="dogSize">Dog Size *</label>
+ <select id="dogSize" name="dogSize" required>
+ <option value="">-- Select size --</option>
+ <option value="small">Small (e.g. Shih Tzu, Chihuahua)</option>
+ <option value="medium">Medium (e.g. Cocker Spaniel, Westie)</option>
+ <option value="large">Large (e.g. Labrador, Collie)</option>
+ <option value="giant">Giant (e.g. Bernese, Newfoundland)</option>
+ </select>
+ </div>
+
+ <div class="form-section-title"> Appointment Details</div>
+
+ <div class="form-group">
+ <label for="service">Service Required *</label>
+ <select id="service" name="service" required>
+ <option value="">-- Select a service --</option>
+ <option value="full-groom">Full Groom (from €55)</option>
+ <option value="bath-brush">Bath & Brush (from €35)</option>
+ <option value="puppy-groom">Puppy's First Groom (from €30)</option>
+ <option value="tidy-up">Mini Tidy Up (from €25)</option>
+ <option value="unsure">Not sure — please advise</option>
+ </select>
+ </div>
+
+ <div class="form-row">
+ <div class="form-group">
+ <label for="preferredDate">Preferred Date *</label>
+ <input type="date" id="preferredDate" name="preferredDate" required>
+ </div>
+ <div class="form-group">
+ <label for="preferredTime">Preferred Time *</label>
+ <select id="preferredTime" name="preferredTime" required>
+ <option value="">-- Select time --</option>
+ <option value="9:00am">9:00 AM</option>
+ <option value="10:00am">10:00 AM</option>
+ <option value="11:00am">11:00 AM</option>
+ <option value="12:00pm">12:00 PM</option>
+ <option value="1:00pm">1:00 PM</option>
+ <option value="2:00pm">2:00 PM</option>
+ <option value="3:00pm">3:00 PM</option>
+ <option value="4:00pm">4:00 PM</option>
+ </select>
+ </div>
+ </div>
+
+ <div class="form-group">
+ <label for="notes">Anything Else We Should Know?</label>
+ <textarea id="notes" name="notes" placeholder="e.g. anxious around loud noises, allergies, specific style requests, add-ons you'd like..."></textarea>
+ </div>
+
+ <button type="submit" id="submitBtn" class="btn btn-primary submit-btn">Submit Booking Request </button>
+ <p class="form-note">We'll confirm your booking within 24 hours. Your slot isn't secured until we confirm.</p>
+
+ </form>
+ </div>
+
+ <!-- Info boxes below form -->
+ <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 24px;">
+ <div style="background: var(--pink-pale); border-radius: 12px; padding: 20px; text-align:center;">
+ <div style="font-size:1.8rem; margin-bottom:8px;"></div>
+ <div style="font-weight:700; color:var(--purple); margin-bottom:4px;">Prefer to call?</div>
+ <a href="tel:+353858168317" style="color:var(--pink); font-weight:700;">+353 85 816 8317</a>
+ </div>
+ <div style="background: var(--pink-pale); border-radius: 12px; padding: 20px; text-align:center;">
+ <div style="font-size:1.8rem; margin-bottom:8px;"></div>
+ <div style="font-weight:700; color:var(--purple); margin-bottom:4px;">Message on Facebook</div>
+ <a href="https://www.facebook.com/profile.php?id=61586383233480" target="_blank" style="color:var(--pink); font-weight:700;">Pawlished Paws</a>
+ </div>
+ </div>
+ </div>
+
+ <!-- FOOTER -->
+ <footer>
+ <div class="footer-grid">
+ <div class="footer-brand">
+ <img src="images/logo.jpg" alt="Pawlished Paws">
+ <p style="color:white; font-weight:700; font-size:1rem; margin-top:8px;">Pawlished Paws</p>
+ <p>Calm, one-to-one dog grooming in Enniscrone, Co. Sligo.</p>
+ </div>
+ <div class="footer-col">
+ <h4>Quick Links</h4>
+ <ul>
+ <li><a href="index.html">Home</a></li>
+ <li><a href="services.html">Services & Pricing</a></li>
+ <li><a href="booking.html">Book Online</a></li>
+ <li><a href="contact.html">Contact Us</a></li>
+ </ul>
+ </div>
+ <div class="footer-col">
+ <h4>Get In Touch</h4>
+ <div class="footer-contact-item"> Carrowhubbuck South, Inishcrone, Ireland</div>
+ <div class="footer-contact-item"> <a href="tel:+353858168317">+353 85 816 8317</a></div>
+ <div class="footer-contact-item"> <a href="mailto:hello.pawlishedpaws@gmail.com">hello.pawlishedpaws@gmail.com</a></div>
+ </div>
+ </div>
+ <div class="footer-bottom">
+ <span>© 2025 Pawlished Paws. All rights reserved.</span>
+ <span>Made with in Enniscrone, Ireland</span>
+ </div>
+ </footer>
+
+ <script>
+ document.getElementById('hamburger').addEventListener('click', function() {
+ document.getElementById('navLinks').classList.toggle('open');
+ });
+ // Set minimum date to today
+ const dateInput = document.getElementById('preferredDate');
+ const today = new Date().toISOString().split('T')[0];
+ dateInput.setAttribute('min', today);
+ </script>
+</body>
+</html>

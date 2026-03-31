@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>Services & Pricing | Pawlished Paws</title>
+ <meta name="description" content="Dog grooming services and pricing at Pawlished Paws, Enniscrone. Bath & Brush, Full Groom, Puppy Intro and more. All breeds welcome.">
+ <link rel="preconnect" href="https://fonts.googleapis.com">
+ <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+ <link rel="stylesheet" href="css/style.css">
+ <style>
+ .services-hero {
+ background: linear-gradient(135deg, var(--pink-pale), #f5e8f8);
+ padding: 120px 5% 60px;
+ text-align: center;
+ }
+ .services-hero h1 span { color: var(--pink); }
+ .services-hero p { max-width: 540px; margin: 16px auto 0; font-size: 1.1rem; }
+
+ .pricing-note {
+ background: rgba(214,51,132,0.08);
+ border-left: 4px solid var(--pink);
+ padding: 16px 20px;
+ border-radius: 0 10px 10px 0;
+ margin: 0 auto 48px;
+ max-width: 780px;
+ font-size: 0.92rem;
+ color: var(--purple);
+ }
+ .pricing-note strong { color: var(--pink); }
+
+ .size-guide {
+ background: var(--purple);
+ color: white;
+ padding: 60px 5%;
+ }
+ .size-guide-inner { max-width: 900px; margin: 0 auto; }
+ .size-guide h2 { color: white; text-align: center; margin-bottom: 8px; }
+ .size-guide > .size-guide-inner > p { text-align: center; color: rgba(255,255,255,0.75); margin-bottom: 36px; }
+ .size-grid {
+ display: grid;
+ grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+ gap: 16px;
+ }
+ .size-card {
+ background: rgba(255,255,255,0.1);
+ border-radius: 12px;
+ padding: 24px 16px;
+ text-align: center;
+ border: 1px solid rgba(255,255,255,0.15);
+ }
+ .size-card .size-emoji { font-size: 2rem; margin-bottom: 10px; }
+ .size-card h4 { color: white; margin-bottom: 4px; }
+ .size-card p { color: rgba(255,255,255,0.7); font-size: 0.85rem; }
+
+ .addon-grid {
+ display: grid;
+ grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+ gap: 20px;
+ max-width: 900px;
+ margin: 0 auto;
+ }
+ .addon-card {
+ background: white;
+ border-radius: 12px;
+ padding: 22px 20px;
+ box-shadow: var(--shadow);
+ display: flex;
+ align-items: center;
+ gap: 14px;
+ border: 1px solid rgba(214,51,132,0.1);
+ transition: var(--transition);
+ }
+ .addon-card:hover { transform: translateY(-3px); border-color: var(--pink); }
+ .addon-icon { font-size: 1.8rem; }
+ .addon-name { font-weight: 700; color: var(--purple); }
+ .addon-price { font-size: 0.9rem; color: var(--pink); font-weight: 700; }
+
+ .faq-section { background: var(--grey-light); }
+ .faq-list { max-width: 780px; margin: 0 auto; }
+ .faq-item {
+ background: white;
+ border-radius: 12px;
+ padding: 22px 24px;
+ margin-bottom: 14px;
+ box-shadow: 0 2px 10px rgba(74,16,64,0.07);
+ cursor: pointer;
+ border: 1px solid rgba(214,51,132,0.08);
+ transition: var(--transition);
+ }
+ .faq-item:hover { border-color: var(--pink); }
+ .faq-question {
+ display: flex;
+ justify-content: space-between;
+ align-items: center;
+ font-weight: 700;
+ color: var(--purple);
+ }
+ .faq-arrow { color: var(--pink); font-size: 1.2rem; transition: var(--transition); }
+ .faq-item.open .faq-arrow { transform: rotate(180deg); }
+ .faq-answer { display: none; margin-top: 14px; color: var(--grey-text); font-size: 0.95rem; line-height: 1.7; }
+ .faq-item.open .faq-answer { display: block; }
+ </style>
+</head>
+<body>
+
+ <!-- NAVBAR -->
+ <nav>
+ <div class="nav-logo">
+ <img src="images/logo.jpg" alt="Pawlished Paws Logo">
+ <span>Pawlished <em>Paws</em></span>
+ </div>
+ <ul class="nav-links" id="navLinks">
+ <li><a href="index.html">Home</a></li>
+ <li><a href="services.html" class="active">Services</a></li>
+ <li><a href="booking.html">Book</a></li>
+ <li><a href="contact.html">Contact</a></li>
+ <li><a href="booking.html" class="btn btn-primary nav-cta">Book Now </a></li>
+ </ul>
+ <button class="hamburger" id="hamburger" aria-label="Menu">
+ <span></span><span></span><span></span>
+ </button>
+ </nav>
+
+ <!-- HERO -->
+ <div class="services-hero">
+ <span class="section-tag">Services & Pricing</span>
+ <h1>Everything Your Pup <span>Needs</span></h1>
+ <p>Transparent pricing, no hidden extras. Prices vary by breed size and coat condition — contact us for a quote if you're unsure.</p>
+ </div>
+
+ <!-- MAIN SERVICES -->
+ <section style="background: var(--white);">
+ <div class="pricing-note">
+ <strong>Please note:</strong> Prices listed are starting prices. Final pricing depends on your dog's size, breed, and coat condition. We're always happy to give you an estimate before booking — just drop us a message!
+ </div>
+ <div class="services-grid" style="max-width: 1100px; margin: 0 auto;">
+
+ <div class="service-card">
+ <div class="service-icon"></div>
+ <h3>Bath & Brush</h3>
+ <p>A thorough wash and blow-dry to leave your dog clean, fluffy, and smelling wonderful.</p>
+ <ul class="service-includes">
+ <li>Pre-bath brush out</li>
+ <li>Shampoo & condition</li>
+ <li>Blow dry & finish brush</li>
+ <li>Ear clean</li>
+ <li>Nail trim</li>
+ <li>Spritz of doggy cologne</li>
+ </ul>
+ <div class="service-price">From €35 <span>/ session</span></div>
+ <a href="booking.html" class="service-book-btn">Book This →</a>
+ </div>
+
+ <div class="service-card popular">
+ <div class="popular-badge">Most Popular</div>
+ <div class="service-icon"></div>
+ <h3>Full Groom</h3>
+ <p>The complete pamper — everything from bath to breed-specific styling. Your dog leaves looking their absolute best.</p>
+ <ul class="service-includes">
+ <li>Everything in Bath & Brush</li>
+ <li>Full haircut & clipping</li>
+ <li>Scissor finishing</li>
+ <li>Breed-specific styling</li>
+ <li>Bandana or bow</li>
+ <li>Sanitary trim</li>
+ </ul>
+ <div class="service-price">From €55 <span>/ session</span></div>
+ <a href="booking.html" class="service-book-btn">Book This →</a>
+ </div>
+
+ <div class="service-card">
+ <div class="service-icon"></div>
+ <h3>Puppy's First Groom</h3>
+ <p>A gentle, short introduction to the grooming process for puppies aged 12–16 weeks and above.</p>
+ <ul class="service-includes">
+ <li>Short, unhurried session</li>
+ <li>Mini bath & blow dry</li>
+ <li>Light brush & tidy</li>
+ <li>Paw & nail introduction</li>
+ <li>Loads of treats & praise</li>
+ </ul>
+ <div class="service-price">From €30 <span>/ session</span></div>
+ <a href="booking.html" class="service-book-btn">Book This →</a>
+ </div>
+
+ <div class="service-card">
+ <div class="service-icon"></div>
+ <h3>Mini Tidy Up</h3>
+ <p>A quick in-between-grooms freshen up. Perfect for keeping things neat between full appointments.</p>
+ <ul class="service-includes">
+ <li>Face & eye trim</li>
+ <li>Paw pad tidy</li>
+ <li>Sanitary clip</li>
+ <li>Nail trim</li>
+ </ul>
+ <div class="service-price">From €25 <span>/ session</span></div>
+ <a href="booking.html" class="service-book-btn">Book This →</a>
+ </div>
+
+ </div>
+ </section>
+
+ <!-- SIZE GUIDE -->
+ <div class="size-guide">
+ <div class="size-guide-inner">
+ <h2>Pricing by Dog Size</h2>
+ <p>Prices are based on dog size and coat type. Here's a rough guide:</p>
+ <div class="size-grid">
+ <div class="size-card">
+ <div class="size-emoji"></div>
+ <h4>Small</h4>
+ <p>e.g. Shih Tzu, Bichon, Chihuahua</p>
+ </div>
+ <div class="size-card">
+ <div class="size-emoji"></div>
+ <h4>Medium</h4>
+ <p>e.g. Cocker Spaniel, Westie, Poodle</p>
+ </div>
+ <div class="size-card">
+ <div class="size-emoji"></div>
+ <h4>Large</h4>
+ <p>e.g. Labrador, Golden Retriever, Collie</p>
+ </div>
+ <div class="size-card">
+ <div class="size-emoji"></div>
+ <h4>Giant</h4>
+ <p>e.g. Bernese, Newfoundland, Great Dane</p>
+ </div>
+ </div>
+ <p style="text-align:center; color: rgba(255,255,255,0.65); margin-top:24px; font-size:0.9rem;">Not sure which category your dog falls into? Just ask! We're happy to advise.</p>
+ </div>
+ </div>
+
+ <!-- ADD-ONS -->
+ <section>
+ <div class="section-header">
+ <span class="section-tag">Extras</span>
+ <h2>Add-On Treatments</h2>
+ <p>Enhance your dog's groom with any of our optional extras.</p>
+ </div>
+ <div class="addon-grid">
+ <div class="addon-card">
+ <div class="addon-icon"></div>
+ <div>
+ <div class="addon-name">Teeth Brushing</div>
+ <div class="addon-price">+ €8</div>
+ </div>
+ </div>
+ <div class="addon-card">
+ <div class="addon-icon"></div>
+ <div>
+ <div class="addon-name">Ear Plucking</div>
+ <div class="addon-price">+ €5</div>
+ </div>
+ </div>
+ <div class="addon-card">
+ <div class="addon-icon"></div>
+ <div>
+ <div class="addon-name">Nail Painting</div>
+ <div class="addon-price">+ €8</div>
+ </div>
+ </div>
+ <div class="addon-card">
+ <div class="addon-icon"></div>
+ <div>
+ <div class="addon-name">Deep Condition Treatment</div>
+ <div class="addon-price">+ €10</div>
+ </div>
+ </div>
+ <div class="addon-card">
+ <div class="addon-icon"></div>
+ <div>
+ <div class="addon-name">Bow / Bandana</div>
+ <div class="addon-price">Included</div>
+ </div>
+ </div>
+ <div class="addon-card">
+ <div class="addon-icon"></div>
+ <div>
+ <div class="addon-name">Blueberry Facial</div>
+ <div class="addon-price">+ €6</div>
+ </div>
+ </div>
+ </div>
+ </section>
+
+ <!-- FAQ -->
+ <section class="faq-section">
+ <div class="section-header">
+ <span class="section-tag">FAQ</span>
+ <h2>Common Questions</h2>
+ </div>
+ <div class="faq-list">
+ <div class="faq-item">
+ <div class="faq-question">How long does a groom take? <span class="faq-arrow"></span></div>
+ <div class="faq-answer">A full groom typically takes between 2–3 hours depending on your dog's size, breed, and coat condition. A bath & brush is usually 1–1.5 hours. We'll give you a more accurate time estimate when you book.</div>
+ </div>
+ <div class="faq-item">
+ <div class="faq-question">Does my dog need to be vaccinated? <span class="faq-arrow"></span></div>
+ <div class="faq-answer">Yes — we ask that all dogs are up to date with their core vaccinations (including kennel cough). This protects both your dog and others. Puppies must have completed their vaccination course before their first groom.</div>
+ </div>
+ <div class="faq-item">
+ <div class="faq-question">My dog gets anxious — can you still help? <span class="faq-arrow"></span></div>
+ <div class="faq-answer">Absolutely. We specialise in calm, patient grooming and never rush a dog. Because we work with one dog at a time in a quiet setting, anxious dogs often relax much faster than they would in a busy salon. Just let us know beforehand so we can plan their session accordingly.</div>
+ </div>
+ <div class="faq-item">
+ <div class="faq-question">What breeds do you groom? <span class="faq-arrow"></span></div>
+ <div class="faq-answer">All breeds are welcome! From small terriers and spaniels to large retrievers and working dogs. If you have an unusual breed or mix, give us a call and we'll be happy to chat through what's involved.</div>
+ </div>
+ <div class="faq-item">
+ <div class="faq-question">How do I book? <span class="faq-arrow"></span></div>
+ <div class="faq-answer">You can book directly through our website using the online booking form — just pick your service and a preferred date and time, and we'll confirm your appointment. You can also call or message us on Facebook if you prefer.</div>
+ </div>
+ <div class="faq-item">
+ <div class="faq-question">What's your cancellation policy? <span class="faq-arrow"></span></div>
+ <div class="faq-answer">We ask for at least 24 hours' notice for cancellations or rescheduling. Late cancellations may be subject to a small fee. Life happens though — just let us know as soon as possible and we'll do our best to accommodate you.</div>
+ </div>
+ </div>
+ </section>
+
+ <!-- CTA -->
+ <section class="cta-banner">
+ <h2>Ready to Book?</h2>
+ <p>Slots fill up fast — secure your dog's appointment online today.</p>
+ <a href="booking.html" class="btn btn-primary">Book Online Now </a>
+ <div style="margin-top: 20px; font-size: 0.9rem; opacity: 0.8;">Questions? Call <a href="tel:+353858168317" style="color:white; font-weight:700;">+353 85 816 8317</a></div>
+ </section>
+
+ <!-- FOOTER -->
+ <footer>
+ <div class="footer-grid">
+ <div class="footer-brand">
+ <img src="images/logo.jpg" alt="Pawlished Paws">
+ <p style="color:white; font-weight:700; font-size:1rem; margin-top:8px;">Pawlished Paws</p>
+ <p>Calm, one-to-one dog grooming in Enniscrone, Co. Sligo. All breeds welcome.</p>
+ </div>
+ <div class="footer-col">
+ <h4>Quick Links</h4>
+ <ul>
+ <li><a href="index.html">Home</a></li>
+ <li><a href="services.html">Services & Pricing</a></li>
+ <li><a href="booking.html">Book Online</a></li>
+ <li><a href="contact.html">Contact Us</a></li>
+ </ul>
+ </div>
+ <div class="footer-col">
+ <h4>Get In Touch</h4>
+ <div class="footer-contact-item"> Carrowhubbuck South, Inishcrone, Ireland</div>
+ <div class="footer-contact-item"> <a href="tel:+353858168317">+353 85 816 8317</a></div>
+ <div class="footer-contact-item"> <a href="mailto:hello.pawlishedpaws@gmail.com">hello.pawlishedpaws@gmail.com</a></div>
+ </div>
+ </div>
+ <div class="footer-bottom">
+ <span>© 2025 Pawlished Paws. All rights reserved.</span>
+ <span>Made with in Enniscrone, Ireland</span>
+ </div>
+ </footer>
+
+ <script>
+ document.getElementById('hamburger').addEventListener('click', function() {
+ document.getElementById('navLinks').classList.toggle('open');
+ });
+ document.querySelectorAll('.faq-item').forEach(item => {
+ item.addEventListener('click', () => item.classList.toggle('open'));
+ });
+ </script>
+</body>
+</html>
