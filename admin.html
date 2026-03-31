@@ -1,309 +1,733 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
- <meta charset="UTF-8">
- <meta name="viewport" content="width=device-width, initial-scale=1.0">
- <title>Admin | Pawlished Paws</title>
- <link rel="preconnect" href="https://fonts.googleapis.com">
- <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
- <link rel="stylesheet" href="css/style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin | Pawlished Paws</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .admin-tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 28px;
+      border-bottom: 2px solid #f0e6f6;
+      padding-bottom: 0;
+    }
+    .admin-tab-btn {
+      padding: 10px 24px;
+      border: none;
+      background: none;
+      font-family: inherit;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--grey-text);
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+      border-radius: 8px 8px 0 0;
+      transition: all 0.2s;
+    }
+    .admin-tab-btn.active {
+      color: var(--pink);
+      border-bottom-color: var(--pink);
+      background: rgba(214,51,132,0.05);
+    }
+    .admin-tab-btn:hover:not(.active) { color: var(--purple); background: rgba(74,16,64,0.04); }
 
- <!-- Firebase SDK -->
- <script type="module">
- import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
- import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
- import { getFirestore, collection, getDocs, doc, updateDoc, orderBy, query } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
 
- const firebaseConfig = {
- apiKey: "AIzaSyBhHj79WRYLOTDsRMx6wFjhtgSlq5VLi6Q",
- authDomain: "pawlished-paws.firebaseapp.com",
- projectId: "pawlished-paws",
- storageBucket: "pawlished-paws.firebasestorage.app",
- messagingSenderId: "482052040342",
- appId: "1:482052040342:web:07f8a00394dcbe3f9004b7",
- measurementId: "G-GGWPEHR3CB"
- };
+    /* Services panel */
+    .services-admin-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .services-admin-header h3 { font-size: 1.2rem; color: var(--purple); margin: 0; }
+    .service-type-toggle {
+      display: flex;
+      gap: 8px;
+    }
+    .type-filter-btn {
+      padding: 6px 16px;
+      border-radius: 20px;
+      border: 2px solid #e8d5f0;
+      background: white;
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      color: var(--grey-text);
+      transition: all 0.2s;
+    }
+    .type-filter-btn.active { background: var(--pink); border-color: var(--pink); color: white; }
 
- let app, auth, db;
- const demoMode = firebaseConfig.apiKey.includes("YOUR_");
+    .services-list { display: flex; flex-direction: column; gap: 12px; }
+    .service-admin-card {
+      background: white;
+      border-radius: 12px;
+      padding: 16px 20px;
+      border: 1px solid #f0e6f6;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 0 2px 8px rgba(74,16,64,0.05);
+      transition: all 0.2s;
+    }
+    .service-admin-card:hover { border-color: var(--pink); }
+    .service-admin-card.inactive { opacity: 0.5; }
+    .service-card-info { flex: 1; }
+    .service-card-name { font-weight: 800; color: var(--purple); font-size: 1rem; }
+    .service-card-meta { font-size: 0.82rem; color: var(--grey-text); margin-top: 2px; }
+    .service-card-price { font-weight: 700; color: var(--pink); font-size: 0.95rem; white-space: nowrap; }
+    .popular-pill {
+      background: var(--pink);
+      color: white;
+      font-size: 0.7rem;
+      font-weight: 800;
+      padding: 2px 8px;
+      border-radius: 10px;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+    .inactive-pill {
+      background: #e5e7eb;
+      color: #6b7280;
+      font-size: 0.7rem;
+      font-weight: 800;
+      padding: 2px 8px;
+      border-radius: 10px;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+    .service-card-actions { display: flex; gap: 8px; }
+    .btn-edit {
+      padding: 7px 14px;
+      background: white;
+      border: 2px solid var(--pink);
+      color: var(--pink);
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-edit:hover { background: var(--pink); color: white; }
+    .btn-delete {
+      padding: 7px 14px;
+      background: white;
+      border: 2px solid #fca5a5;
+      color: #ef4444;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-delete:hover { background: #ef4444; color: white; border-color: #ef4444; }
 
- if (!demoMode) {
- app = initializeApp(firebaseConfig);
- auth = getAuth(app);
- db = getFirestore(app);
- }
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(74,16,64,0.45);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-box {
+      background: white;
+      border-radius: 20px;
+      padding: 32px;
+      width: 100%;
+      max-width: 560px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(74,16,64,0.25);
+    }
+    .modal-box h3 { font-size: 1.3rem; color: var(--purple); margin-bottom: 20px; }
+    .modal-box .form-group { margin-bottom: 16px; }
+    .modal-box label { font-weight: 700; color: var(--purple); font-size: 0.88rem; display: block; margin-bottom: 5px; }
+    .modal-box input[type="text"],
+    .modal-box input[type="number"],
+    .modal-box textarea,
+    .modal-box select {
+      width: 100%;
+      padding: 10px 14px;
+      border: 2px solid #e8d5f0;
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 0.95rem;
+      color: var(--purple);
+      outline: none;
+      box-sizing: border-box;
+      transition: border-color 0.2s;
+    }
+    .modal-box input:focus,
+    .modal-box textarea:focus,
+    .modal-box select:focus { border-color: var(--pink); }
+    .modal-box textarea { min-height: 80px; resize: vertical; }
+    .modal-check-row { display: flex; align-items: center; gap: 10px; }
+    .modal-check-row input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--pink); cursor: pointer; }
+    .modal-check-row label { margin: 0; font-size: 0.9rem; cursor: pointer; }
+    .modal-actions { display: flex; gap: 12px; margin-top: 24px; justify-content: flex-end; }
+    .modal-hint { font-size: 0.78rem; color: var(--grey-text); margin-top: 4px; }
+    .services-empty { text-align: center; padding: 40px; color: var(--grey-text); }
+    .seed-btn-wrap { text-align: center; margin-top: 16px; }
+    .btn-seed {
+      padding: 10px 22px;
+      background: #f0e6f6;
+      border: 2px dashed var(--pink);
+      color: var(--pink);
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 0.88rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-seed:hover { background: var(--pink); color: white; }
+    .services-loading { text-align: center; padding: 30px; color: var(--grey-text); }
+  </style>
 
- // ---- Auth State ----
- window.addEventListener('DOMContentLoaded', () => {
- if (demoMode) {
- showDemoMode();
- return;
- }
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
+    import { getFirestore, collection, getDocs, getDoc, addDoc, doc, updateDoc, deleteDoc, orderBy, query, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
 
- onAuthStateChanged(auth, (user) => {
- if (user) {
- showDashboard(user);
- loadBookings();
- } else {
- showLogin();
- }
- });
+    const firebaseConfig = {
+      apiKey: "AIzaSyBhHj79WRYLOTDsRMx6wFjhtgSlq5VLi6Q",
+      authDomain: "pawlished-paws.firebaseapp.com",
+      projectId: "pawlished-paws",
+      storageBucket: "pawlished-paws.firebasestorage.app",
+      messagingSenderId: "482052040342",
+      appId: "1:482052040342:web:07f8a00394dcbe3f9004b7",
+      measurementId: "G-GGWPEHR3CB"
+    };
 
- // Login form
- document.getElementById('loginForm').addEventListener('submit', async (e) => {
- e.preventDefault();
- const email = document.getElementById('loginEmail').value;
- const password = document.getElementById('loginPassword').value;
- const errEl = document.getElementById('loginError');
- errEl.textContent = '';
- try {
- await signInWithEmailAndPassword(auth, email, password);
- } catch (err) {
- errEl.textContent = 'Incorrect email or password. Please try again.';
- }
- });
+    let app, auth, db;
+    const demoMode = firebaseConfig.apiKey.includes("YOUR_");
 
- // Logout
- document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
- });
+    if (!demoMode) {
+      app = initializeApp(firebaseConfig);
+      auth = getAuth(app);
+      db = getFirestore(app);
+    }
 
- function showLogin() {
- document.getElementById('loginScreen').style.display = 'flex';
- document.getElementById('dashboardScreen').style.display = 'none';
- }
+    // ---- Auth State ----
+    window.addEventListener('DOMContentLoaded', () => {
+      if (demoMode) { showDemoMode(); return; }
 
- function showDashboard(user) {
- document.getElementById('loginScreen').style.display = 'none';
- document.getElementById('dashboardScreen').style.display = 'block';
- document.getElementById('adminEmail').textContent = user.email;
- }
+      onAuthStateChanged(auth, (user) => {
+        if (user) { showDashboard(user); loadBookings(); loadServices(); }
+        else { showLogin(); }
+      });
 
- function showDemoMode() {
- document.getElementById('loginScreen').style.display = 'none';
- document.getElementById('dashboardScreen').style.display = 'block';
- document.getElementById('adminEmail').textContent = 'demo@pawlishedpaws.ie';
- loadDemoBookings();
- document.getElementById('logoutBtn').style.display = 'none';
- }
+      document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('loginEmail').value;
+        const password = document.getElementById('loginPassword').value;
+        const errEl = document.getElementById('loginError');
+        errEl.textContent = '';
+        try {
+          await signInWithEmailAndPassword(auth, email, password);
+        } catch (err) {
+          errEl.textContent = 'Incorrect email or password. Please try again.';
+        }
+      });
 
- // ---- Load Real Bookings from Firestore ----
- async function loadBookings() {
- const loadingEl = document.getElementById('loadingState');
- const emptyEl = document.getElementById('emptyState');
- const tableEl = document.getElementById('bookingsTable');
- const tbody = document.getElementById('bookingsTbody');
+      document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
 
- loadingEl.style.display = 'block';
+      // Tab switching
+      document.querySelectorAll('.admin-tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.admin-tab-btn').forEach(b => b.classList.remove('active'));
+          document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+          btn.classList.add('active');
+          document.getElementById(btn.dataset.tab).classList.add('active');
+        });
+      });
 
- try {
- const q = query(collection(db, "bookings"), orderBy("createdAt", "desc"));
- const snapshot = await getDocs(q);
+      // Service type filter
+      document.querySelectorAll('.type-filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.type-filter-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          renderServicesList(btn.dataset.type);
+        });
+      });
 
- loadingEl.style.display = 'none';
+      // Modal close on overlay click
+      document.getElementById('serviceModal').addEventListener('click', (e) => {
+        if (e.target === document.getElementById('serviceModal')) closeModal();
+      });
 
- if (snapshot.empty) {
- emptyEl.style.display = 'block';
- return;
- }
+      // Service form submit
+      document.getElementById('serviceForm').addEventListener('submit', saveService);
+    });
 
- tableEl.style.display = 'table';
- tbody.innerHTML = '';
+    function showLogin() {
+      document.getElementById('loginScreen').style.display = 'flex';
+      document.getElementById('dashboardScreen').style.display = 'none';
+    }
+    function showDashboard(user) {
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('dashboardScreen').style.display = 'block';
+      document.getElementById('adminEmail').textContent = user.email;
+    }
+    function showDemoMode() {
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('dashboardScreen').style.display = 'block';
+      document.getElementById('adminEmail').textContent = 'demo@pawlishedpaws.ie';
+      loadDemoBookings();
+      document.getElementById('logoutBtn').style.display = 'none';
+    }
 
- let pending = 0, confirmed = 0, total = 0;
+    // ============================================================
+    // BOOKINGS
+    // ============================================================
+    async function loadBookings() {
+      const loadingEl = document.getElementById('loadingState');
+      const emptyEl = document.getElementById('emptyState');
+      const tableEl = document.getElementById('bookingsTable');
+      const tbody = document.getElementById('bookingsTbody');
+      loadingEl.style.display = 'block';
+      try {
+        const q = query(collection(db, "bookings"), orderBy("createdAt", "desc"));
+        const snapshot = await getDocs(q);
+        loadingEl.style.display = 'none';
+        if (snapshot.empty) { emptyEl.style.display = 'block'; return; }
+        tableEl.style.display = 'table';
+        tbody.innerHTML = '';
+        let pending = 0, confirmed = 0, total = 0;
+        snapshot.forEach((docSnap) => {
+          const d = docSnap.data();
+          total++;
+          if (d.status === 'pending') pending++;
+          if (d.status === 'confirmed') confirmed++;
+          const date = d.preferredDate || '—';
+          const time = d.preferredTime || '—';
+          tbody.innerHTML += `
+            <tr>
+              <td><strong>${d.ownerName || '—'}</strong><br><span style="font-size:0.8rem;color:var(--grey-text)">${d.ownerEmail || ''}</span></td>
+              <td>${d.dogName || '—'}<br><span style="font-size:0.8rem;color:var(--grey-text)">${d.dogBreed || ''} · ${d.dogSize || ''}</span></td>
+              <td>${d.service || '—'}</td>
+              <td>${date}<br><span style="font-size:0.8rem;color:var(--grey-text)">${time}</span></td>
+              <td><span class="status-badge status-${d.status || 'pending'}">${d.status || 'pending'}</span></td>
+              <td>
+                <select onchange="updateStatus('${docSnap.id}', this.value)" style="padding:6px 10px; border-radius:8px; border:1px solid #e8d5f0; font-family:inherit; font-size:0.85rem; cursor:pointer;">
+                  <option value="pending" ${d.status==='pending'?'selected':''}>Pending</option>
+                  <option value="confirmed" ${d.status==='confirmed'?'selected':''}>Confirmed</option>
+                  <option value="completed" ${d.status==='completed'?'selected':''}>Completed</option>
+                </select>
+              </td>
+            </tr>`;
+        });
+        document.getElementById('statTotal').textContent = total;
+        document.getElementById('statPending').textContent = pending;
+        document.getElementById('statConfirmed').textContent = confirmed;
+      } catch (err) {
+        loadingEl.style.display = 'none';
+        console.error("Error loading bookings:", err);
+        emptyEl.innerHTML = '<p>Error loading bookings. Check your Firestore rules.</p>';
+        emptyEl.style.display = 'block';
+      }
+    }
 
- snapshot.forEach((docSnap) => {
- const d = docSnap.data();
- total++;
- if (d.status === 'pending') pending++;
- if (d.status === 'confirmed') confirmed++;
+    window.updateStatus = async (docId, newStatus) => {
+      if (demoMode) return;
+      try { await updateDoc(doc(db, "bookings", docId), { status: newStatus }); }
+      catch (err) { console.error("Update failed:", err); }
+    };
 
- const date = d.preferredDate || '—';
- const time = d.preferredTime || '—';
+    function loadDemoBookings() {
+      const tbody = document.getElementById('bookingsTbody');
+      document.getElementById('loadingState').style.display = 'none';
+      document.getElementById('bookingsTable').style.display = 'table';
+      document.getElementById('statTotal').textContent = '3';
+      document.getElementById('statPending').textContent = '2';
+      document.getElementById('statConfirmed').textContent = '1';
+      const demos = [
+        { name: 'Sarah Murphy', email: 'sarah@example.com', dog: 'Biscuit', breed: 'Golden Retriever', size: 'large', service: 'Full Groom', date: '2025-04-10', time: '10:00am', status: 'confirmed' },
+        { name: 'Declan Farrell', email: 'declan@example.com', dog: 'Rex', breed: 'Collie Mix', size: 'large', service: 'Bath & Brush', date: '2025-04-11', time: '2:00pm', status: 'pending' },
+        { name: "Claire O'Brien", email: 'claire@example.com', dog: 'Bella', breed: 'Cockapoo', size: 'medium', service: 'Full Groom', date: '2025-04-12', time: '11:00am', status: 'pending' },
+      ];
+      demos.forEach(d => {
+        tbody.innerHTML += `
+          <tr>
+            <td><strong>${d.name}</strong><br><span style="font-size:0.8rem;color:var(--grey-text)">${d.email}</span></td>
+            <td>${d.dog}<br><span style="font-size:0.8rem;color:var(--grey-text)">${d.breed} · ${d.size}</span></td>
+            <td>${d.service}</td>
+            <td>${d.date}<br><span style="font-size:0.8rem;color:var(--grey-text)">${d.time}</span></td>
+            <td><span class="status-badge status-${d.status}">${d.status}</span></td>
+            <td><span style="font-size:0.8rem;color:var(--grey-text)">Demo mode</span></td>
+          </tr>`;
+      });
+    }
 
- tbody.innerHTML += `
- <tr>
- <td><strong>${d.ownerName || '—'}</strong><br><span style="font-size:0.8rem;color:var(--grey-text)">${d.ownerEmail || ''}</span></td>
- <td>${d.dogName || '—'}<br><span style="font-size:0.8rem;color:var(--grey-text)">${d.dogBreed || ''} · ${d.dogSize || ''}</span></td>
- <td>${formatService(d.service)}</td>
- <td>${date}<br><span style="font-size:0.8rem;color:var(--grey-text)">${time}</span></td>
- <td><span class="status-badge status-${d.status || 'pending'}">${d.status || 'pending'}</span></td>
- <td>
- <select onchange="updateStatus('${docSnap.id}', this.value)" style="padding:6px 10px; border-radius:8px; border:1px solid #e8d5f0; font-family:inherit; font-size:0.85rem; cursor:pointer;">
- <option value="pending" ${d.status==='pending'?'selected':''}>Pending</option>
- <option value="confirmed" ${d.status==='confirmed'?'selected':''}>Confirmed</option>
- <option value="completed" ${d.status==='completed'?'selected':''}>Completed</option>
- </select>
- </td>
- </tr>
- `;
- });
+    // ============================================================
+    // SERVICES
+    // ============================================================
+    let allServices = [];
+    let editingServiceId = null;
+    let currentTypeFilter = 'main';
 
- document.getElementById('statTotal').textContent = total;
- document.getElementById('statPending').textContent = pending;
- document.getElementById('statConfirmed').textContent = confirmed;
+    async function loadServices() {
+      const loadingEl = document.getElementById('servicesLoading');
+      const listEl = document.getElementById('servicesList');
+      loadingEl.style.display = 'block';
+      listEl.style.display = 'none';
+      try {
+        const q = query(collection(db, "services"), orderBy("order", "asc"));
+        const snapshot = await getDocs(q);
+        allServices = [];
+        snapshot.forEach(docSnap => {
+          allServices.push({ id: docSnap.id, ...docSnap.data() });
+        });
+        loadingEl.style.display = 'none';
+        listEl.style.display = 'block';
+        renderServicesList(currentTypeFilter);
+        updateServicesCount();
+      } catch (err) {
+        loadingEl.textContent = 'Error loading services. Check Firestore rules.';
+        console.error(err);
+      }
+    }
 
- } catch (err) {
- loadingEl.style.display = 'none';
- console.error("Error loading bookings:", err);
- emptyEl.innerHTML = '<div class="empty-state-icon"></div><p>Error loading bookings. Check your Firestore rules.</p>';
- emptyEl.style.display = 'block';
- }
- }
+    function updateServicesCount() {
+      const mainCount = allServices.filter(s => s.type === 'main').length;
+      const addonCount = allServices.filter(s => s.type === 'addon').length;
+      document.getElementById('mainCount').textContent = mainCount;
+      document.getElementById('addonCount').textContent = addonCount;
+    }
 
- // ---- Update booking status ----
- window.updateStatus = async (docId, newStatus) => {
- if (demoMode) return;
- try {
- await updateDoc(doc(db, "bookings", docId), { status: newStatus });
- } catch (err) {
- console.error("Update failed:", err);
- }
- };
+    function renderServicesList(typeFilter) {
+      currentTypeFilter = typeFilter;
+      const listEl = document.getElementById('servicesList');
+      const filtered = allServices.filter(s => s.type === typeFilter);
+      if (filtered.length === 0) {
+        listEl.innerHTML = `
+          <div class="services-empty">
+            <p>No ${typeFilter === 'main' ? 'services' : 'add-ons'} yet.</p>
+            <div class="seed-btn-wrap">
+              <button class="btn-seed" onclick="seedDefaultServices()">Load default services into Firebase</button>
+            </div>
+          </div>`;
+        return;
+      }
+      listEl.innerHTML = filtered.map(s => `
+        <div class="service-admin-card ${s.active === false ? 'inactive' : ''}">
+          <div class="service-card-info">
+            <div class="service-card-name">
+              ${s.name}
+              ${s.popular ? '<span class="popular-pill">Popular</span>' : ''}
+              ${s.active === false ? '<span class="inactive-pill">Hidden</span>' : ''}
+            </div>
+            <div class="service-card-meta">${s.description ? s.description.substring(0, 80) + (s.description.length > 80 ? '…' : '') : ''}</div>
+          </div>
+          <div class="service-card-price">${s.price || ''}${s.priceUnit ? ' <small style="font-weight:400;color:var(--grey-text)">' + s.priceUnit + '</small>' : ''}</div>
+          <div class="service-card-actions">
+            <button class="btn-edit" onclick="openEditModal('${s.id}')">Edit</button>
+            <button class="btn-delete" onclick="deleteService('${s.id}', '${s.name.replace(/'/g, "\\'")}')">Delete</button>
+          </div>
+        </div>
+      `).join('');
+    }
 
- // ---- Demo Mode sample data ----
- function loadDemoBookings() {
- const tbody = document.getElementById('bookingsTbody');
- document.getElementById('loadingState').style.display = 'none';
- document.getElementById('bookingsTable').style.display = 'table';
- document.getElementById('statTotal').textContent = '3';
- document.getElementById('statPending').textContent = '2';
- document.getElementById('statConfirmed').textContent = '1';
+    // Open modal to add new service
+    window.openAddModal = function(type) {
+      editingServiceId = null;
+      document.getElementById('modalTitle').textContent = type === 'addon' ? 'Add New Add-On' : 'Add New Service';
+      document.getElementById('serviceForm').reset();
+      document.getElementById('svcType').value = type || 'main';
+      document.getElementById('svcActive').checked = true;
+      document.getElementById('svcOrder').value = allServices.filter(s => s.type === (type || 'main')).length + 1;
+      document.getElementById('serviceModal').classList.add('open');
+    };
 
- const demos = [
- { name: 'Sarah Murphy', email: 'sarah@example.com', dog: 'Biscuit', breed: 'Golden Retriever', size: 'large', service: 'full-groom', date: '2025-04-10', time: '10:00am', status: 'confirmed' },
- { name: 'Declan Farrell', email: 'declan@example.com', dog: 'Rex', breed: 'Collie Mix', size: 'large', service: 'bath-brush', date: '2025-04-11', time: '2:00pm', status: 'pending' },
- { name: 'Claire O\'Brien', email: 'claire@example.com', dog: 'Bella', breed: 'Cockapoo', size: 'medium', service: 'full-groom', date: '2025-04-12', time: '11:00am', status: 'pending' },
- ];
+    // Open modal to edit
+    window.openEditModal = function(id) {
+      const svc = allServices.find(s => s.id === id);
+      if (!svc) return;
+      editingServiceId = id;
+      document.getElementById('modalTitle').textContent = 'Edit Service';
+      document.getElementById('svcName').value = svc.name || '';
+      document.getElementById('svcDescription').value = svc.description || '';
+      document.getElementById('svcType').value = svc.type || 'main';
+      document.getElementById('svcPrice').value = svc.price || '';
+      document.getElementById('svcPriceUnit').value = svc.priceUnit || '';
+      document.getElementById('svcIncludes').value = svc.includes ? svc.includes.join('\n') : '';
+      document.getElementById('svcPopular').checked = !!svc.popular;
+      document.getElementById('svcActive').checked = svc.active !== false;
+      document.getElementById('svcOrder').value = svc.order || 1;
+      document.getElementById('serviceModal').classList.add('open');
+    };
 
- demos.forEach(d => {
- tbody.innerHTML += `
- <tr>
- <td><strong>${d.name}</strong><br><span style="font-size:0.8rem;color:var(--grey-text)">${d.email}</span></td>
- <td>${d.dog}<br><span style="font-size:0.8rem;color:var(--grey-text)">${d.breed} · ${d.size}</span></td>
- <td>${formatService(d.service)}</td>
- <td>${d.date}<br><span style="font-size:0.8rem;color:var(--grey-text)">${d.time}</span></td>
- <td><span class="status-badge status-${d.status}">${d.status}</span></td>
- <td><span style="font-size:0.8rem;color:var(--grey-text)">Demo mode</span></td>
- </tr>
- `;
- });
+    window.closeModal = function() {
+      document.getElementById('serviceModal').classList.remove('open');
+      editingServiceId = null;
+    };
 
- const demoBanner = document.createElement('div');
- demoBanner.className = 'firebase-status';
- demoBanner.style.margin = '0 0 20px';
- demoBanner.innerHTML = ' <span><strong>Demo mode.</strong> Paste your Firebase config into admin.html to see real bookings and enable login.</span>';
- document.querySelector('.admin-dashboard').insertBefore(demoBanner, document.querySelector('.dashboard-header'));
- }
+    async function saveService(e) {
+      e.preventDefault();
+      const saveBtn = document.getElementById('saveServiceBtn');
+      saveBtn.textContent = 'Saving…';
+      saveBtn.disabled = true;
 
- function formatService(s) {
- const map = { 'full-groom': 'Full Groom', 'bath-brush': 'Bath & Brush', 'puppy-groom': "Puppy's First Groom", 'tidy-up': 'Tidy Up', 'unsure': 'Unsure — advise' };
- return map[s] || s || '—';
- }
- </script>
+      const includesRaw = document.getElementById('svcIncludes').value.trim();
+      const includesArr = includesRaw ? includesRaw.split('\n').map(l => l.trim()).filter(Boolean) : [];
+
+      const data = {
+        name: document.getElementById('svcName').value.trim(),
+        description: document.getElementById('svcDescription').value.trim(),
+        type: document.getElementById('svcType').value,
+        price: document.getElementById('svcPrice').value.trim(),
+        priceUnit: document.getElementById('svcPriceUnit').value.trim(),
+        includes: includesArr,
+        popular: document.getElementById('svcPopular').checked,
+        active: document.getElementById('svcActive').checked,
+        order: parseInt(document.getElementById('svcOrder').value) || 99,
+        updatedAt: serverTimestamp()
+      };
+
+      try {
+        if (editingServiceId) {
+          await updateDoc(doc(db, "services", editingServiceId), data);
+        } else {
+          data.createdAt = serverTimestamp();
+          await addDoc(collection(db, "services"), data);
+        }
+        closeModal();
+        await loadServices();
+      } catch (err) {
+        console.error("Error saving service:", err);
+        alert('Error saving. Check Firestore rules allow authenticated writes to the services collection.');
+      } finally {
+        saveBtn.textContent = 'Save Service';
+        saveBtn.disabled = false;
+      }
+    }
+
+    window.deleteService = async function(id, name) {
+      if (!confirm(`Delete "${name}"? This will remove it from the website immediately.`)) return;
+      try {
+        await deleteDoc(doc(db, "services", id));
+        allServices = allServices.filter(s => s.id !== id);
+        renderServicesList(currentTypeFilter);
+        updateServicesCount();
+      } catch (err) {
+        console.error("Delete failed:", err);
+        alert('Delete failed. Check Firestore rules.');
+      }
+    };
+
+    // Seed default services into Firebase
+    window.seedDefaultServices = async function() {
+      if (!confirm('This will add all the default Pawlished Paws services to Firebase. Continue?')) return;
+      const defaults = [
+        { name: 'Bath & Brush', type: 'main', description: 'A thorough wash and blow-dry to leave your dog clean, fluffy, and smelling wonderful.', includes: ['Pre-bath brush out', 'Shampoo & condition', 'Blow dry & finish brush', 'Ear clean', 'Nail trim', 'Spritz of doggy cologne'], price: 'From €35', priceUnit: '/ session', popular: false, active: true, order: 1 },
+        { name: 'Full Groom', type: 'main', description: 'The complete pamper — everything from bath to breed-specific styling. Your dog leaves looking their absolute best.', includes: ['Everything in Bath & Brush', 'Full haircut & clipping', 'Scissor finishing', 'Breed-specific styling', 'Bandana or bow', 'Sanitary trim'], price: 'From €55', priceUnit: '/ session', popular: true, active: true, order: 2 },
+        { name: "Puppy's First Groom", type: 'main', description: 'A gentle, short introduction to the grooming process for puppies aged 12–16 weeks and above.', includes: ['Short, unhurried session', 'Mini bath & blow dry', 'Light brush & tidy', 'Paw & nail introduction', 'Loads of treats & praise'], price: 'From €30', priceUnit: '/ session', popular: false, active: true, order: 3 },
+        { name: 'Mini Tidy Up', type: 'main', description: 'A quick in-between-grooms freshen up. Perfect for keeping things neat between full appointments.', includes: ['Face & eye trim', 'Paw pad tidy', 'Sanitary clip', 'Nail trim'], price: 'From €25', priceUnit: '/ session', popular: false, active: true, order: 4 },
+        { name: 'Teeth Brushing', type: 'addon', description: '', includes: [], price: '+ €8', priceUnit: '', popular: false, active: true, order: 1 },
+        { name: 'Ear Plucking', type: 'addon', description: '', includes: [], price: '+ €5', priceUnit: '', popular: false, active: true, order: 2 },
+        { name: 'Nail Painting', type: 'addon', description: '', includes: [], price: '+ €8', priceUnit: '', popular: false, active: true, order: 3 },
+        { name: 'Deep Condition Treatment', type: 'addon', description: '', includes: [], price: '+ €10', priceUnit: '', popular: false, active: true, order: 4 },
+        { name: 'Bow / Bandana', type: 'addon', description: '', includes: [], price: 'Included', priceUnit: '', popular: false, active: true, order: 5 },
+        { name: 'Blueberry Facial', type: 'addon', description: '', includes: [], price: '+ €6', priceUnit: '', popular: false, active: true, order: 6 },
+      ];
+      try {
+        for (const svc of defaults) {
+          svc.createdAt = serverTimestamp();
+          svc.updatedAt = serverTimestamp();
+          await addDoc(collection(db, "services"), svc);
+        }
+        await loadServices();
+        alert('Default services added successfully!');
+      } catch (err) {
+        console.error(err);
+        alert('Error seeding services. Make sure Firestore rules allow authenticated writes to the services collection.');
+      }
+    };
+  </script>
 </head>
 <body>
 
- <!-- ============ LOGIN SCREEN ============ -->
- <div class="admin-login" id="loginScreen" style="display:none;">
- <div class="login-box">
- <img src="images/logo.jpg" alt="Pawlished Paws">
- <h2>Admin Login</h2>
- <p>Sign in to manage your bookings</p>
- <form id="loginForm">
- <div class="form-group" style="text-align:left;">
- <label for="loginEmail">Email</label>
- <input type="email" id="loginEmail" placeholder="hello.pawlishedpaws@gmail.com" required>
- </div>
- <div class="form-group" style="text-align:left; margin-bottom:24px;">
- <label for="loginPassword">Password</label>
- <input type="password" id="loginPassword" placeholder="Your password" required>
- </div>
- <p id="loginError" style="color: #e11d48; font-size:0.88rem; margin-bottom:12px;"></p>
- <button type="submit" class="btn btn-primary" style="width:100%;">Sign In </button>
- </form>
- <p style="margin-top:20px; font-size:0.82rem; color:var(--grey-text);">This is a private admin area. Not looking for this? <a href="index.html" style="color:var(--pink);">Go to the main site →</a></p>
- </div>
- </div>
+  <!-- ============ LOGIN SCREEN ============ -->
+  <div class="admin-login" id="loginScreen" style="display:none;">
+    <div class="login-box">
+      <img src="images/logo.jpg" alt="Pawlished Paws">
+      <h2>Admin Login</h2>
+      <p>Sign in to manage your bookings and services</p>
+      <form id="loginForm">
+        <div class="form-group" style="text-align:left;">
+          <label for="loginEmail">Email</label>
+          <input type="email" id="loginEmail" placeholder="hello.pawlishedpaws@gmail.com" required>
+        </div>
+        <div class="form-group" style="text-align:left; margin-bottom:24px;">
+          <label for="loginPassword">Password</label>
+          <input type="password" id="loginPassword" placeholder="Your password" required>
+        </div>
+        <p id="loginError" style="color: #e11d48; font-size:0.88rem; margin-bottom:12px;"></p>
+        <button type="submit" class="btn btn-primary" style="width:100%;">Sign In</button>
+      </form>
+      <p style="margin-top:20px; font-size:0.82rem; color:var(--grey-text);">Private admin area. <a href="index.html" style="color:var(--pink);">Go to main site →</a></p>
+    </div>
+  </div>
 
- <!-- ============ DASHBOARD ============ -->
- <div id="dashboardScreen" style="display:none;">
+  <!-- ============ DASHBOARD ============ -->
+  <div id="dashboardScreen" style="display:none;">
 
- <!-- Navbar -->
- <nav>
- <div class="nav-logo">
- <img src="images/logo.jpg" alt="Pawlished Paws Logo">
- <span>Pawlished <em>Paws</em> — Admin</span>
- </div>
- <ul class="nav-links">
- <li><a href="index.html">← Back to Site</a></li>
- <li style="font-size:0.85rem; color:var(--grey-text);" id="adminEmail"></li>
- <li><button id="logoutBtn" class="btn btn-outline" style="padding:8px 18px; font-size:0.85rem;">Sign Out</button></li>
- </ul>
- </nav>
+    <nav>
+      <div class="nav-logo">
+        <img src="images/logo.jpg" alt="Pawlished Paws Logo">
+        <span>Pawlished <em>Paws</em> — Admin</span>
+      </div>
+      <ul class="nav-links">
+        <li><a href="index.html">← Back to Site</a></li>
+        <li style="font-size:0.85rem; color:var(--grey-text);" id="adminEmail"></li>
+        <li><button id="logoutBtn" class="btn btn-outline" style="padding:8px 18px; font-size:0.85rem;">Sign Out</button></li>
+      </ul>
+    </nav>
 
- <div class="admin-dashboard">
+    <div class="admin-dashboard">
 
- <div class="dashboard-header">
- <h1>Bookings Dashboard </h1>
- <button onclick="location.reload()" class="btn btn-outline" style="padding:10px 20px; font-size:0.9rem;">↻ Refresh</button>
- </div>
+      <!-- TABS -->
+      <div class="admin-tabs">
+        <button class="admin-tab-btn active" data-tab="tab-bookings">Bookings</button>
+        <button class="admin-tab-btn" data-tab="tab-services">Services &amp; Add-Ons</button>
+      </div>
 
- <!-- Stats -->
- <div class="dashboard-stats">
- <div class="dash-stat">
- <div class="dash-stat-num" id="statTotal">—</div>
- <div class="dash-stat-label">Total Bookings</div>
- </div>
- <div class="dash-stat" style="border-left-color: #F59E0B;">
- <div class="dash-stat-num" style="color:#F59E0B;" id="statPending">—</div>
- <div class="dash-stat-label">Pending Confirmation</div>
- </div>
- <div class="dash-stat" style="border-left-color: #10B981;">
- <div class="dash-stat-num" style="color:#10B981;" id="statConfirmed">—</div>
- <div class="dash-stat-label">Confirmed</div>
- </div>
- </div>
+      <!-- ===== TAB: BOOKINGS ===== -->
+      <div id="tab-bookings" class="tab-panel active">
+        <div class="dashboard-header">
+          <h1>Bookings Dashboard</h1>
+          <button onclick="location.reload()" class="btn btn-outline" style="padding:10px 20px; font-size:0.9rem;">↻ Refresh</button>
+        </div>
+        <div class="dashboard-stats">
+          <div class="dash-stat">
+            <div class="dash-stat-num" id="statTotal">—</div>
+            <div class="dash-stat-label">Total Bookings</div>
+          </div>
+          <div class="dash-stat" style="border-left-color: #F59E0B;">
+            <div class="dash-stat-num" style="color:#F59E0B;" id="statPending">—</div>
+            <div class="dash-stat-label">Pending Confirmation</div>
+          </div>
+          <div class="dash-stat" style="border-left-color: #10B981;">
+            <div class="dash-stat-num" style="color:#10B981;" id="statConfirmed">—</div>
+            <div class="dash-stat-label">Confirmed</div>
+          </div>
+        </div>
+        <div class="bookings-table-wrap">
+          <div class="bookings-table-header">
+            <h3>All Bookings</h3>
+            <span style="font-size:0.85rem; color:var(--grey-text);">Newest first — update status using the dropdown</span>
+          </div>
+          <div id="loadingState" style="text-align:center; padding:40px; color:var(--grey-text);">Loading bookings…</div>
+          <div id="emptyState" class="empty-state" style="display:none;">
+            <p>No bookings yet. When clients book through the website, they'll appear here.</p>
+          </div>
+          <table id="bookingsTable" style="display:none;">
+            <thead>
+              <tr>
+                <th>Owner</th><th>Dog</th><th>Service</th><th>Date &amp; Time</th><th>Status</th><th>Update Status</th>
+              </tr>
+            </thead>
+            <tbody id="bookingsTbody"></tbody>
+          </table>
+        </div>
+        <p style="text-align:center; margin-top:24px; font-size:0.85rem; color:var(--grey-text);">Need to contact a client? Click their email in the table, or call them directly.</p>
+      </div>
 
- <!-- Bookings Table -->
- <div class="bookings-table-wrap">
- <div class="bookings-table-header">
- <h3>All Bookings</h3>
- <span style="font-size:0.85rem; color:var(--grey-text);">Newest first — update status using the dropdown</span>
- </div>
+      <!-- ===== TAB: SERVICES ===== -->
+      <div id="tab-services" class="tab-panel">
+        <div class="services-admin-header">
+          <h3>Manage Services &amp; Add-Ons</h3>
+          <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <div class="service-type-toggle">
+              <button class="type-filter-btn active" data-type="main">Main Services <span id="mainCount" style="background:rgba(214,51,132,0.12);padding:1px 7px;border-radius:10px;font-size:0.78rem;margin-left:4px;">0</span></button>
+              <button class="type-filter-btn" data-type="addon">Add-Ons <span id="addonCount" style="background:rgba(214,51,132,0.12);padding:1px 7px;border-radius:10px;font-size:0.78rem;margin-left:4px;">0</span></button>
+            </div>
+            <button class="btn btn-primary" style="padding:9px 20px; font-size:0.88rem;" onclick="openAddModal(document.querySelector('.type-filter-btn.active').dataset.type)">+ Add New</button>
+          </div>
+        </div>
+        <p style="font-size:0.85rem; color:var(--grey-text); margin-bottom:16px;">Changes here update the website immediately — services shown on the Services page and booking form are pulled live from Firebase.</p>
+        <div id="servicesLoading" class="services-loading">Loading services…</div>
+        <div id="servicesList" class="services-list" style="display:none;"></div>
+      </div>
 
- <!-- Loading -->
- <div id="loadingState" style="text-align:center; padding:40px; color:var(--grey-text);">
- <div style="font-size:2rem; margin-bottom:10px;"></div>
- Loading bookings...
- </div>
+    </div><!-- end admin-dashboard -->
+  </div><!-- end dashboardScreen -->
 
- <!-- Empty state -->
- <div id="emptyState" class="empty-state" style="display:none;">
- <div class="empty-state-icon"></div>
- <p>No bookings yet. When clients book through the website, they'll appear here.</p>
- </div>
-
- <!-- Table -->
- <table id="bookingsTable" style="display:none;">
- <thead>
- <tr>
- <th>Owner</th>
- <th>Dog</th>
- <th>Service</th>
- <th>Date & Time</th>
- <th>Status</th>
- <th>Update Status</th>
- </tr>
- </thead>
- <tbody id="bookingsTbody"></tbody>
- </table>
- </div>
-
- <p style="text-align:center; margin-top:24px; font-size:0.85rem; color:var(--grey-text);">
- Need to contact a client? Click their email in the table, or call them directly.
- </p>
- </div>
- </div>
+  <!-- ============ SERVICE MODAL ============ -->
+  <div class="modal-overlay" id="serviceModal">
+    <div class="modal-box">
+      <h3 id="modalTitle">Add New Service</h3>
+      <form id="serviceForm">
+        <div class="form-group">
+          <label for="svcName">Service Name *</label>
+          <input type="text" id="svcName" placeholder="e.g. Full Groom" required>
+        </div>
+        <div class="form-group">
+          <label for="svcType">Type *</label>
+          <select id="svcType">
+            <option value="main">Main Service</option>
+            <option value="addon">Add-On</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="svcDescription">Description</label>
+          <textarea id="svcDescription" placeholder="Short description shown on the services page…"></textarea>
+        </div>
+        <div class="form-group">
+          <label for="svcIncludes">What's Included <span style="font-weight:400;">(one item per line)</span></label>
+          <textarea id="svcIncludes" style="min-height:100px;" placeholder="Pre-bath brush out&#10;Shampoo &amp; condition&#10;Blow dry &amp; finish brush"></textarea>
+          <div class="modal-hint">Each line becomes a bullet point on the services page.</div>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div class="form-group">
+            <label for="svcPrice">Price *</label>
+            <input type="text" id="svcPrice" placeholder="e.g. From €55 or + €8">
+          </div>
+          <div class="form-group">
+            <label for="svcPriceUnit">Price Unit</label>
+            <input type="text" id="svcPriceUnit" placeholder="e.g. / session">
+          </div>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div class="form-group">
+            <label for="svcOrder">Display Order</label>
+            <input type="number" id="svcOrder" min="1" value="1">
+          </div>
+          <div class="form-group" style="display:flex; flex-direction:column; gap:10px; padding-top:4px;">
+            <div class="modal-check-row">
+              <input type="checkbox" id="svcPopular">
+              <label for="svcPopular">Mark as "Most Popular"</label>
+            </div>
+            <div class="modal-check-row">
+              <input type="checkbox" id="svcActive" checked>
+              <label for="svcActive">Visible on website</label>
+            </div>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-outline" onclick="closeModal()" style="padding:10px 22px;">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="saveServiceBtn" style="padding:10px 22px;">Save Service</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
 </body>
 </html>

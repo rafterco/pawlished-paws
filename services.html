@@ -8,6 +8,75 @@
  <link rel="preconnect" href="https://fonts.googleapis.com">
  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
  <link rel="stylesheet" href="css/style.css">
+
+ <!-- Firebase: load services dynamically -->
+ <script type="module">
+   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+   import { getFirestore, collection, getDocs, orderBy, query, where } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+
+   const firebaseConfig = {
+     apiKey: "AIzaSyBhHj79WRYLOTDsRMx6wFjhtgSlq5VLi6Q",
+     authDomain: "pawlished-paws.firebaseapp.com",
+     projectId: "pawlished-paws",
+     storageBucket: "pawlished-paws.firebasestorage.app",
+     messagingSenderId: "482052040342",
+     appId: "1:482052040342:web:07f8a00394dcbe3f9004b7"
+   };
+
+   async function loadServicesPage() {
+     try {
+       const app = initializeApp(firebaseConfig);
+       const db = getFirestore(app);
+       const q = query(collection(db, "services"), orderBy("order", "asc"));
+       const snapshot = await getDocs(q);
+       if (snapshot.empty) return; // keep static fallback visible
+
+       const mainServices = [];
+       const addons = [];
+       snapshot.forEach(doc => {
+         const d = { id: doc.id, ...doc.data() };
+         if (d.active === false) return;
+         if (d.type === 'addon') addons.push(d);
+         else mainServices.push(d);
+       });
+
+       // Render main services
+       if (mainServices.length > 0) {
+         const grid = document.getElementById('servicesGrid');
+         grid.innerHTML = mainServices.map(s => `
+           <div class="service-card ${s.popular ? 'popular' : ''}">
+             ${s.popular ? '<div class="popular-badge">Most Popular</div>' : ''}
+             <div class="service-icon"></div>
+             <h3>${s.name}</h3>
+             <p>${s.description || ''}</p>
+             ${s.includes && s.includes.length ? `<ul class="service-includes">${s.includes.map(i => `<li>${i}</li>`).join('')}</ul>` : ''}
+             <div class="service-price">${s.price} ${s.priceUnit ? `<span>${s.priceUnit}</span>` : ''}</div>
+             <a href="booking.html" class="service-book-btn">Book This →</a>
+           </div>
+         `).join('');
+       }
+
+       // Render add-ons
+       if (addons.length > 0) {
+         const addonGrid = document.getElementById('addonGrid');
+         addonGrid.innerHTML = addons.map(a => `
+           <div class="addon-card">
+             <div class="addon-icon"></div>
+             <div>
+               <div class="addon-name">${a.name}</div>
+               <div class="addon-price">${a.price}</div>
+             </div>
+           </div>
+         `).join('');
+       }
+     } catch (err) {
+       console.warn("Could not load services from Firebase, showing static content.", err);
+     }
+   }
+
+   window.addEventListener('DOMContentLoaded', loadServicesPage);
+ </script>
+
  <style>
  .services-hero {
  background: linear-gradient(135deg, var(--pink-pale), #f5e8f8);
@@ -134,7 +203,7 @@
  <div class="pricing-note">
  <strong>Please note:</strong> Prices listed are starting prices. Final pricing depends on your dog's size, breed, and coat condition. We're always happy to give you an estimate before booking — just drop us a message!
  </div>
- <div class="services-grid" style="max-width: 1100px; margin: 0 auto;">
+ <div class="services-grid" id="servicesGrid" style="max-width: 1100px; margin: 0 auto;">
 
  <div class="service-card">
  <div class="service-icon"></div>
@@ -239,7 +308,7 @@
  <h2>Add-On Treatments</h2>
  <p>Enhance your dog's groom with any of our optional extras.</p>
  </div>
- <div class="addon-grid">
+ <div class="addon-grid" id="addonGrid">
  <div class="addon-card">
  <div class="addon-icon"></div>
  <div>

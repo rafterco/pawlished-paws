@@ -8,6 +8,56 @@
  <link rel="preconnect" href="https://fonts.googleapis.com">
  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
  <link rel="stylesheet" href="css/style.css">
+
+ <!-- Firebase: load services dynamically -->
+ <script type="module">
+   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+   import { getFirestore, collection, getDocs, orderBy, query } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+
+   const firebaseConfig = {
+     apiKey: "AIzaSyBhHj79WRYLOTDsRMx6wFjhtgSlq5VLi6Q",
+     authDomain: "pawlished-paws.firebaseapp.com",
+     projectId: "pawlished-paws",
+     storageBucket: "pawlished-paws.firebasestorage.app",
+     messagingSenderId: "482052040342",
+     appId: "1:482052040342:web:07f8a00394dcbe3f9004b7"
+   };
+
+   async function loadServicesPreview() {
+     try {
+       const app = initializeApp(firebaseConfig);
+       const db = getFirestore(app);
+       const q = query(collection(db, "services"), orderBy("order", "asc"));
+       const snapshot = await getDocs(q);
+       if (snapshot.empty) return;
+
+       const mainServices = [];
+       snapshot.forEach(doc => {
+         const d = { id: doc.id, ...doc.data() };
+         if (d.active !== false && d.type === 'main') mainServices.push(d);
+       });
+
+       if (mainServices.length === 0) return;
+       const grid = document.getElementById('servicesGrid');
+       if (!grid) return;
+       grid.innerHTML = mainServices.map(s => `
+         <div class="service-card ${s.popular ? 'popular' : ''}">
+           ${s.popular ? '<div class="popular-badge">Most Popular</div>' : ''}
+           <div class="service-icon"></div>
+           <h3>${s.name}</h3>
+           <p>${s.description || ''}</p>
+           ${s.includes && s.includes.length ? `<ul class="service-includes">${s.includes.slice(0,3).map(i => `<li>${i}</li>`).join('')}</ul>` : ''}
+           <div class="service-price">${s.price} ${s.priceUnit ? `<span>${s.priceUnit}</span>` : ''}</div>
+           <a href="booking.html" class="service-book-btn">Book This →</a>
+         </div>
+       `).join('');
+     } catch (err) {
+       console.warn("Could not load services from Firebase.", err);
+     }
+   }
+
+   window.addEventListener('DOMContentLoaded', loadServicesPreview);
+ </script>
 </head>
 <body>
 
@@ -82,7 +132,7 @@
  <h2>Grooming Packages for Every Pup</h2>
  <p>From a quick freshen up to a full pamper session — we have a package to suit every dog and every budget.</p>
  </div>
- <div class="services-grid">
+ <div class="services-grid" id="servicesGrid">
 
  <div class="service-card">
  <div class="service-icon"></div>
