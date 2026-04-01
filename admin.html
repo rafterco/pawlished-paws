@@ -708,10 +708,10 @@
 
   <!-- Top bar -->
   <div class="admin-topbar">
-    <div class="admin-topbar-logo">
+    <a href="index.html" class="admin-topbar-logo" target="_blank" title="View website">
       <img src="images/logo.jpg" alt="Pawlished Paws">
       <span>Pawlished <em>Paws</em> <span style="font-weight:400;font-size:0.8rem;opacity:0.7;">Admin</span></span>
-    </div>
+    </a>
     <div class="admin-topbar-right">
       <span id="adminEmail" style="font-size:0.85rem;color:var(--grey-text);"></span>
       <button id="logoutBtn" class="btn-sm btn-outline">Sign Out</button>
@@ -1014,7 +1014,7 @@ body.admin-body { background: #f7f0fc; min-height: 100vh; padding: 0; margin: 0;
   box-shadow: 0 2px 12px rgba(74,16,64,0.08);
   position: sticky; top: 0; z-index: 100; flex-wrap: wrap; gap: 12px;
 }
-.admin-topbar-logo { display: flex; align-items: center; gap: 10px; }
+.admin-topbar-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; cursor: pointer; }
 .admin-topbar-logo img { height: 40px; width: 40px; border-radius: 50%; object-fit: cover; }
 .admin-topbar-logo span { font-size: 1.1rem; font-weight: 800; color: var(--purple); }
 .admin-topbar-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
