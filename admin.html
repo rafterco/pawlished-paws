@@ -805,6 +805,54 @@
     };
     window.closeQuickAdd = () => { document.getElementById('quickAddModal').style.display = 'none'; };
 
+    window.qaLookup = () => {
+      const name  = document.getElementById('qaOwnerName').value.trim().toLowerCase();
+      const phone = document.getElementById('qaOwnerPhone').value.trim().replace(/\s/g,'');
+
+      // Need at least 3 chars on name or 5 digits on phone to attempt a match
+      if (name.length < 3 && phone.length < 5) {
+        document.getElementById('qaAutofillNote').style.display = 'none';
+        return;
+      }
+
+      // Find the most recent booking that matches name or phone
+      const sorted = [...allBookings].sort((a, b) =>
+        (b.preferredDate || '') > (a.preferredDate || '') ? 1 : -1
+      );
+      const match = sorted.find(b => {
+        const bName  = (b.ownerName  || '').toLowerCase();
+        const bPhone = (b.ownerPhone || '').replace(/\s/g,'');
+        return (phone.length >= 5 && bPhone.includes(phone)) ||
+               (name.length  >= 3 && bName.includes(name));
+      });
+
+      if (!match) {
+        document.getElementById('qaAutofillNote').style.display = 'none';
+        return;
+      }
+
+      // Fill owner fields (only if currently empty)
+      if (!document.getElementById('qaOwnerEmail').value && match.ownerEmail)
+        document.getElementById('qaOwnerEmail').value = match.ownerEmail;
+      if (!document.getElementById('qaOwnerPhone').value && match.ownerPhone)
+        document.getElementById('qaOwnerPhone').value = match.ownerPhone;
+      if (!document.getElementById('qaOwnerName').value && match.ownerName)
+        document.getElementById('qaOwnerName').value = match.ownerName;
+
+      // Fill dog fields (only if currently empty)
+      if (!document.getElementById('qaDogName').value && match.dogName)
+        document.getElementById('qaDogName').value = match.dogName;
+      if (!document.getElementById('qaDogBreed').value && match.dogBreed)
+        document.getElementById('qaDogBreed').value = match.dogBreed;
+      if (!document.getElementById('qaDogSize').value && match.dogSize)
+        document.getElementById('qaDogSize').value = match.dogSize;
+
+      // Show subtle confirmation
+      const note = document.getElementById('qaAutofillNote');
+      note.textContent = `Details filled from ${match.dogName ? match.dogName + "'s" : 'a previous'} booking on ${match.preferredDate || 'an earlier date'}.`;
+      note.style.display = 'block';
+    };
+
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('qaForm').addEventListener('submit', async e => {
         e.preventDefault();
@@ -1288,13 +1336,14 @@
       <div class="form-row">
         <div class="form-group">
           <label>Owner Name *</label>
-          <input type="text" id="qaOwnerName" placeholder="e.g. Sarah Murphy" required>
+          <input type="text" id="qaOwnerName" placeholder="e.g. Sarah Murphy" required oninput="qaLookup()">
         </div>
         <div class="form-group">
           <label>Phone Number *</label>
-          <input type="tel" id="qaOwnerPhone" placeholder="e.g. 085 816 8317" required>
+          <input type="tel" id="qaOwnerPhone" placeholder="e.g. 085 816 8317" required oninput="qaLookup()">
         </div>
       </div>
+      <div id="qaAutofillNote" class="qa-autofill-note" style="display:none;"></div>
       <div class="form-group">
         <label>Email (optional)</label>
         <input type="email" id="qaOwnerEmail" placeholder="e.g. sarah@email.com">
@@ -1622,6 +1671,13 @@ body.admin-body { background: #f7f0fc; min-height: 100vh; padding: 0; margin: 0;
 .heatmap-legend-bar {
   width: 120px; height: 10px; border-radius: 20px;
   background: linear-gradient(90deg, rgba(214,51,132,0.08) 0%, rgba(214,51,132,1) 100%);
+}
+
+/* ─── Quick-add autofill note ────────────────────────────────────── */
+.qa-autofill-note {
+  background: #dcfce7; color: #166534; border-radius: 10px;
+  padding: 9px 14px; font-size: 0.82rem; font-weight: 600;
+  margin-bottom: 14px; border: 1.5px solid #bbf7d0;
 }
 
 /* ─── Quick-add modal form fields ────────────────────────────────── */
