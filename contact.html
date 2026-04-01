@@ -140,9 +140,10 @@
  <p style="margin-bottom:28px; font-size:0.95rem;">We'll get back to you within one working day. If it's urgent, give us a call!</p>
 
  <div class="contact-success" id="contactSuccess">
- <div style="font-size:2.5rem; margin-bottom:12px;"></div>
+ <div style="font-size:2.5rem; margin-bottom:12px;">🐾</div>
  <h3 style="color:var(--purple); margin-bottom:8px;">Message Sent!</h3>
- <p>Thanks for reaching out. We'll get back to you soon.</p>
+ <p>Your email app should have opened with the message ready to send. If it didn't, just email us directly at <a href="mailto:hello.pawlishedpaws@gmail.com" style="color:var(--pink);font-weight:700;">hello.pawlishedpaws@gmail.com</a></p>
+ <p style="margin-top:12px;font-size:0.9rem;color:var(--grey-text);">We'll get back to you within one working day.</p>
  </div>
 
  <form id="contactForm">
@@ -223,10 +224,24 @@
  });
 
  document.getElementById('contactForm').addEventListener('submit', function(e) {
- e.preventDefault();
- this.style.display = 'none';
- document.getElementById('contactSuccess').style.display = 'block';
- // In production: wire this up to EmailJS, a Cloud Function, or Formspree
+   e.preventDefault();
+   const name    = document.getElementById('contactName').value;
+   const phone   = document.getElementById('contactPhone').value;
+   const email   = document.getElementById('contactEmail').value;
+   const subject = document.getElementById('contactSubject').value || 'Website Enquiry';
+   const message = document.getElementById('contactMessage').value;
+
+   const body = `Name: ${name}\nEmail: ${email}\nPhone: ${phone || 'Not provided'}\nSubject: ${subject}\n\nMessage:\n${message}`;
+   const mailtoLink = `mailto:hello.pawlishedpaws@gmail.com?subject=Website Enquiry – ${encodeURIComponent(name)}&body=${encodeURIComponent(body)}`;
+
+   // Open their email client with everything pre-filled
+   window.location.href = mailtoLink;
+
+   // Show confirmation after a short delay
+   setTimeout(() => {
+     document.getElementById('contactForm').style.display = 'none';
+     document.getElementById('contactSuccess').style.display = 'block';
+   }, 600);
  });
  </script>
 </body>

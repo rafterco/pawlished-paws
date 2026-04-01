@@ -119,6 +119,15 @@ nav {
   transform: rotate(-20deg);
 }
 .hero-content { max-width: 620px; z-index: 1; }
+.hero-logo-lockup { margin-bottom: 20px; }
+.hero-logo-img {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 8px 32px rgba(74,16,64,0.18), 0 0 0 5px white, 0 0 0 8px rgba(214,51,132,0.2);
+  display: block;
+}
 .hero-badge {
   display: inline-flex;
   align-items: center;
@@ -647,10 +656,29 @@ textarea { resize: vertical; min-height: 100px; }
   border: 2px solid #f3d0e8;
 }
 .quote-divider {
-  text-align: center;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 4px 0;
+}
+.quote-divider-line {
+  flex: 1;
+  height: 2px;
+  background: #e8d5f0;
+  border-radius: 2px;
+}
+.quote-divider-text {
   color: var(--grey-text);
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  flex-shrink: 0;
+}
+.quote-btn-alt {
+  border-color: var(--purple) !important;
+  color: var(--purple) !important;
+  font-weight: 700;
 }
 .quote-request-text {
   text-align: center;

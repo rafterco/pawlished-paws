@@ -431,7 +431,8 @@
         const dateStr = `${calendarYear}-${String(calendarMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
         const bks = bookingsByDate[dateStr] || [];
         const isToday = dateStr === today;
-        const isUnavail = unavailDates.some(u => u.date === dateStr);
+        const expandedUnavail = getExpandedUnavailDates();
+        const isUnavail = expandedUnavail.some(u => u.date === dateStr);
         const isPast = dateStr < today;
         html += `<div class="cal-day ${isToday?'today':''} ${isUnavail?'unavail':''} ${isPast&&!isToday?'past':''}">
           <div class="cal-day-num">${d}</div>
@@ -495,33 +496,67 @@
 
     function renderUnavailDates() {
       const list = document.getElementById('unavailList');
-      const sorted = [...unavailDates].sort((a, b) => (a.date > b.date ? 1 : -1));
+      // Group ranges — items with a dateFrom/dateTo are ranges, items with just date are single days
+      const sorted = [...unavailDates].sort((a, b) => {
+        const aDate = a.dateFrom || a.date || '';
+        const bDate = b.dateFrom || b.date || '';
+        return aDate > bDate ? 1 : -1;
+      });
       if (sorted.length === 0) {
         list.innerHTML = '<p style="color:var(--grey-text);text-align:center;padding:16px;">No holidays or closed days added yet.</p>';
         return;
       }
       list.innerHTML = sorted.map(u => {
-        const d = new Date(u.date + 'T12:00:00');
-        const label = d.toLocaleDateString('en-IE', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' });
+        let label;
+        if (u.dateFrom && u.dateTo && u.dateFrom !== u.dateTo) {
+          const from = new Date(u.dateFrom + 'T12:00:00').toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' });
+          const to = new Date(u.dateTo + 'T12:00:00').toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' });
+          label = `📅 ${from} → ${to}`;
+        } else {
+          const date = u.dateFrom || u.date;
+          const d = new Date(date + 'T12:00:00');
+          label = `📅 ${d.toLocaleDateString('en-IE', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })}`;
+        }
         return `<div class="unavail-item">
-          <span>📅 ${label} ${u.note ? `<em style="color:var(--grey-text)">— ${u.note}</em>` : ''}</span>
+          <span>${label} ${u.note ? `<em style="color:var(--grey-text)"> — ${u.note}</em>` : ''}</span>
           <button class="btn-remove" onclick="removeUnavailDate('${u.id}')">✕</button>
         </div>`;
       }).join('');
     }
 
+    // Expand all individual dates within a range for calendar marking
+    function getExpandedUnavailDates() {
+      const expanded = [];
+      unavailDates.forEach(u => {
+        if (u.dateFrom && u.dateTo) {
+          let current = new Date(u.dateFrom + 'T12:00:00');
+          const end = new Date(u.dateTo + 'T12:00:00');
+          while (current <= end) {
+            expanded.push({ ...u, date: current.toISOString().split('T')[0] });
+            current.setDate(current.getDate() + 1);
+          }
+        } else {
+          expanded.push({ ...u });
+        }
+      });
+      return expanded;
+    }
+
     document.getElementById('addUnavailBtn').addEventListener('click', async () => {
-      const dateVal = document.getElementById('unavailDateInput').value;
+      const fromVal = document.getElementById('unavailFromInput').value;
+      const toVal = document.getElementById('unavailToInput').value || fromVal;
       const noteVal = document.getElementById('unavailNoteInput').value.trim();
-      if (!dateVal) { alert('Please pick a date.'); return; }
-      if (unavailDates.some(u => u.date === dateVal)) { alert('This date is already blocked.'); return; }
-      const ref = await addDoc(collection(db, 'unavailableDates'), { date: dateVal, note: noteVal });
-      unavailDates.push({ id: ref.id, date: dateVal, note: noteVal });
+      if (!fromVal) { alert('Please pick a start date.'); return; }
+      if (toVal < fromVal) { alert('End date must be on or after the start date.'); return; }
+      const ref = await addDoc(collection(db, 'unavailableDates'), { dateFrom: fromVal, dateTo: toVal, note: noteVal });
+      unavailDates.push({ id: ref.id, dateFrom: fromVal, dateTo: toVal, note: noteVal });
       renderUnavailDates();
       renderCalendar();
-      document.getElementById('unavailDateInput').value = '';
+      document.getElementById('unavailFromInput').value = '';
+      document.getElementById('unavailToInput').value = '';
       document.getElementById('unavailNoteInput').value = '';
-      showToast('Date blocked!');
+      const days = Math.round((new Date(toVal) - new Date(fromVal)) / 86400000) + 1;
+      showToast(days > 1 ? `${days} days blocked!` : 'Date blocked!');
     });
 
     window.removeUnavailDate = async id => {
@@ -816,9 +851,22 @@
           <h3>🏖️ Holidays &amp; Closed Days</h3>
           <p style="color:var(--grey-text);font-size:0.88rem;margin-bottom:20px;">Block out dates when you're unavailable — shown on the calendar and booking form.</p>
           <div class="unavail-add-row">
-            <input type="date" id="unavailDateInput">
-            <input type="text" id="unavailNoteInput" placeholder="Reason (optional)" style="flex:1;">
-            <button class="btn btn-primary" id="addUnavailBtn" style="padding:10px 18px;font-size:0.88rem;white-space:nowrap;">+ Block Date</button>
+            <div class="unavail-date-range">
+              <div class="unavail-date-field">
+                <label style="font-size:0.75rem;font-weight:700;color:var(--grey-text);text-transform:uppercase;letter-spacing:0.04em;">From</label>
+                <input type="date" id="unavailFromInput">
+              </div>
+              <div style="align-self:flex-end;padding-bottom:10px;color:var(--grey-text);font-weight:700;">→</div>
+              <div class="unavail-date-field">
+                <label style="font-size:0.75rem;font-weight:700;color:var(--grey-text);text-transform:uppercase;letter-spacing:0.04em;">To (optional)</label>
+                <input type="date" id="unavailToInput">
+              </div>
+              <div class="unavail-date-field" style="flex:2;">
+                <label style="font-size:0.75rem;font-weight:700;color:var(--grey-text);text-transform:uppercase;letter-spacing:0.04em;">Reason (optional)</label>
+                <input type="text" id="unavailNoteInput" placeholder="e.g. Christmas, Holiday…">
+              </div>
+            </div>
+            <button class="btn btn-primary" id="addUnavailBtn" style="padding:10px 18px;font-size:0.88rem;white-space:nowrap;margin-top:10px;width:100%;">+ Block Date(s)</button>
           </div>
           <div class="unavail-list" id="unavailList"><p style="color:var(--grey-text);text-align:center;padding:16px;">Loading…</p></div>
         </div>
@@ -1001,7 +1049,8 @@ body.admin-body { background: #f7f0fc; min-height: 100vh; padding: 0; margin: 0;
 .bookings-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; }
 .table-scroll-wrap { overflow-x: auto; border-radius: 14px; box-shadow: 0 2px 12px rgba(74,16,64,0.06); }
 .bookings-table { width: 100%; border-collapse: collapse; background: white; font-size: 0.88rem; min-width: 700px; }
-.bookings-table th { background: var(--purple); color: white; padding: 12px 14px; text-align: left; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.bookings-table th { background: var(--purple); color: white; padding: 12px 14px; text-align: left; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; }
+.bookings-table td:nth-child(5) { min-width: 130px; }
 .bookings-table th:first-child { border-radius: 14px 0 0 0; }
 .bookings-table th:last-child { border-radius: 0 14px 0 0; }
 .bookings-table td { padding: 12px 14px; border-bottom: 1px solid #f5eefa; vertical-align: top; }
@@ -1009,8 +1058,9 @@ body.admin-body { background: #f7f0fc; min-height: 100vh; padding: 0; margin: 0;
 .bookings-table tr:hover td { background: rgba(214,51,132,0.03); }
 
 .status-select {
-  padding: 5px 10px; border-radius: 20px; border: none;
+  padding: 6px 10px; border-radius: 20px; border: none;
   font-family: inherit; font-size: 0.78rem; font-weight: 700; cursor: pointer; outline: none;
+  min-width: 120px; width: 100%;
 }
 .status-select.status-pending { background: #fef9c3; color: #854d0e; }
 .status-select.status-confirmed { background: #dcfce7; color: #166534; }
@@ -1089,25 +1139,30 @@ body.admin-body { background: #f7f0fc; min-height: 100vh; padding: 0; margin: 0;
 .btn-remove:hover { background: #fee2e2; color: #991b1b; }
 
 /* Metrics */
-.metrics-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 14px; margin-bottom: 28px; }
-.metric-card { background: white; border-radius: 14px; padding: 18px 16px; text-align: center; box-shadow: 0 2px 10px rgba(74,16,64,0.06); border: 2px solid #f0e6f6; }
+.metrics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 28px; }
+.metric-card { background: white; border-radius: 14px; padding: 20px 16px; text-align: center; box-shadow: 0 2px 10px rgba(74,16,64,0.06); border: 2px solid #f0e6f6; min-width: 0; }
 .metric-card.pink { border-color: var(--pink); background: var(--pink-pale); }
 .metric-card.green { border-color: #bbf7d0; background: #f0fdf4; }
 .metric-card.yellow { border-color: #fde68a; background: #fefce8; }
 .metric-card.blue { border-color: #bfdbfe; background: #eff6ff; }
 .metric-card.red { border-color: #fca5a5; background: #fef2f2; }
 .metric-card.purple { border-color: #ddd6fe; background: #f5f3ff; }
-.metric-num { font-size: 2rem; font-weight: 900; color: var(--purple); line-height: 1; }
-.metric-label { font-size: 0.72rem; color: var(--grey-text); font-weight: 600; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+.metric-num { font-size: 2.2rem; font-weight: 900; color: var(--purple); line-height: 1; }
+.metric-label { font-size: 0.7rem; color: var(--grey-text); font-weight: 700; margin-top: 6px; text-transform: uppercase; letter-spacing: 0.06em; line-height: 1.3; }
 .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-.chart-section { background: white; border-radius: 14px; padding: 20px; box-shadow: 0 2px 10px rgba(74,16,64,0.06); }
-.chart-section h4 { font-size: 0.88rem; color: var(--purple); margin: 0 0 16px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
-.bar-chart { display: flex; flex-direction: column; gap: 10px; }
-.bar-item { display: grid; grid-template-columns: 100px 1fr 36px; align-items: center; gap: 10px; }
-.bar-label { font-size: 0.8rem; color: var(--grey-text); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.bar-track { background: #f3e8ff; border-radius: 8px; height: 16px; overflow: hidden; }
-.bar-fill { background: linear-gradient(90deg, var(--pink) 0%, var(--purple-mid) 100%); height: 100%; border-radius: 8px; transition: width 0.6s ease; }
-.bar-count { font-size: 0.82rem; font-weight: 700; color: var(--purple); text-align: right; }
+.chart-section { background: white; border-radius: 14px; padding: 22px 20px; box-shadow: 0 2px 10px rgba(74,16,64,0.06); min-width: 0; }
+.chart-section h4 { font-size: 0.82rem; color: var(--purple); margin: 0 0 18px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 2px solid var(--pink-pale); padding-bottom: 10px; }
+.bar-chart { display: flex; flex-direction: column; gap: 12px; }
+.bar-item { display: grid; grid-template-columns: 90px 1fr 32px; align-items: center; gap: 10px; }
+.bar-label { font-size: 0.78rem; color: var(--purple); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar-track { background: #f3e8ff; border-radius: 20px; height: 14px; overflow: hidden; }
+.bar-fill { background: linear-gradient(90deg, var(--pink) 0%, var(--purple-mid) 100%); height: 100%; border-radius: 20px; transition: width 0.7s cubic-bezier(.22,.68,0,1.2); min-width: 4px; }
+.bar-count { font-size: 0.82rem; font-weight: 800; color: var(--purple); text-align: right; }
+
+/* Unavailable date range picker */
+.unavail-date-range { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; flex: 1; }
+.unavail-date-field { display: flex; flex-direction: column; gap: 4px; }
+.unavail-date-field input { padding: 9px 12px; border: 2px solid #e8d5f0; border-radius: 10px; font-family: inherit; font-size: 0.88rem; color: var(--purple); }
 
 /* Modal */
 .modal-overlay { position: fixed; inset: 0; background: rgba(74,16,64,0.35); z-index: 500; display: flex; align-items: center; justify-content: center; padding: 20px; }
@@ -1169,7 +1224,9 @@ body.admin-body { background: #f7f0fc; min-height: 100vh; padding: 0; margin: 0;
   .stats-strip { grid-template-columns: repeat(2, 1fr); gap: 10px; }
   .admin-tabs { gap: 0; }
   .admin-tab-btn { padding: 8px 12px; font-size: 0.78rem; }
-  .metrics-grid { grid-template-columns: repeat(3, 1fr); }
+  .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+  .charts-grid { grid-template-columns: 1fr; }
+  .bar-item { grid-template-columns: 80px 1fr 30px; }
   .hours-row { grid-template-columns: 90px 32px 1fr 1fr; gap: 8px; }
   .calendar-grid { gap: 2px; }
   .cal-day { min-height: 54px; padding: 4px; }
