@@ -808,49 +808,58 @@
     window.qaLookup = () => {
       const name  = document.getElementById('qaOwnerName').value.trim().toLowerCase();
       const phone = document.getElementById('qaOwnerPhone').value.trim().replace(/\s/g,'');
+      const suggestBox = document.getElementById('qaAutofillNote');
 
-      // Need at least 3 chars on name or 5 digits on phone to attempt a match
       if (name.length < 3 && phone.length < 5) {
-        document.getElementById('qaAutofillNote').style.display = 'none';
+        suggestBox.style.display = 'none';
         return;
       }
 
-      // Find the most recent booking that matches name or phone
+      // Collect all unique matching customers from booking history
       const sorted = [...allBookings].sort((a, b) =>
         (b.preferredDate || '') > (a.preferredDate || '') ? 1 : -1
       );
-      const match = sorted.find(b => {
+
+      // De-duplicate by ownerEmail or ownerPhone
+      const seen = new Set();
+      const matches = [];
+      sorted.forEach(b => {
         const bName  = (b.ownerName  || '').toLowerCase();
         const bPhone = (b.ownerPhone || '').replace(/\s/g,'');
-        return (phone.length >= 5 && bPhone.includes(phone)) ||
-               (name.length  >= 3 && bName.includes(name));
+        const nameHit  = name.length  >= 3 && bName.includes(name);
+        const phoneHit = phone.length >= 5 && bPhone.includes(phone);
+        if (!nameHit && !phoneHit) return;
+        const key = (b.ownerEmail || b.ownerPhone || b.ownerName || '').toLowerCase();
+        if (seen.has(key)) return;
+        seen.add(key);
+        matches.push(b);
       });
 
-      if (!match) {
-        document.getElementById('qaAutofillNote').style.display = 'none';
+      if (matches.length === 0) {
+        suggestBox.style.display = 'none';
         return;
       }
 
-      // Fill owner fields (only if currently empty)
-      if (!document.getElementById('qaOwnerEmail').value && match.ownerEmail)
-        document.getElementById('qaOwnerEmail').value = match.ownerEmail;
-      if (!document.getElementById('qaOwnerPhone').value && match.ownerPhone)
-        document.getElementById('qaOwnerPhone').value = match.ownerPhone;
-      if (!document.getElementById('qaOwnerName').value && match.ownerName)
-        document.getElementById('qaOwnerName').value = match.ownerName;
+      // Show clickable suggestion cards
+      suggestBox.style.display = 'block';
+      suggestBox.innerHTML = `<div style="font-size:0.75rem;font-weight:800;color:#166534;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">Returning customer found — click to fill form:</div>` +
+        matches.slice(0, 4).map(b => `
+          <div class="qa-suggest-card" onclick="qaFill(${JSON.stringify(b).replace(/"/g,'&quot;')})">
+            <div style="font-weight:800;color:var(--purple)">${b.ownerName || '?'}</div>
+            <div style="font-size:0.78rem;color:var(--grey-text)">${b.ownerPhone || ''} · ${b.ownerEmail || ''}</div>
+            <div style="font-size:0.78rem;margin-top:2px;">🐶 ${b.dogName || '?'}${b.dogBreed ? ' · ' + b.dogBreed : ''}${b.dogSize ? ' · ' + b.dogSize : ''}</div>
+          </div>`).join('');
+    };
 
-      // Fill dog fields (only if currently empty)
-      if (!document.getElementById('qaDogName').value && match.dogName)
-        document.getElementById('qaDogName').value = match.dogName;
-      if (!document.getElementById('qaDogBreed').value && match.dogBreed)
-        document.getElementById('qaDogBreed').value = match.dogBreed;
-      if (!document.getElementById('qaDogSize').value && match.dogSize)
-        document.getElementById('qaDogSize').value = match.dogSize;
-
-      // Show subtle confirmation
-      const note = document.getElementById('qaAutofillNote');
-      note.textContent = `Details filled from ${match.dogName ? match.dogName + "'s" : 'a previous'} booking on ${match.preferredDate || 'an earlier date'}.`;
-      note.style.display = 'block';
+    window.qaFill = (booking) => {
+      document.getElementById('qaOwnerName').value  = booking.ownerName  || '';
+      document.getElementById('qaOwnerPhone').value = booking.ownerPhone || '';
+      document.getElementById('qaOwnerEmail').value = booking.ownerEmail || '';
+      document.getElementById('qaDogName').value    = booking.dogName    || '';
+      document.getElementById('qaDogBreed').value   = booking.dogBreed   || '';
+      document.getElementById('qaDogSize').value    = booking.dogSize    || '';
+      document.getElementById('qaAutofillNote').innerHTML =
+        `<span style="color:#166534;font-weight:700;">✓ Filled from previous booking — check details and adjust if anything has changed.</span>`;
     };
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -1673,12 +1682,18 @@ body.admin-body { background: #f7f0fc; min-height: 100vh; padding: 0; margin: 0;
   background: linear-gradient(90deg, rgba(214,51,132,0.08) 0%, rgba(214,51,132,1) 100%);
 }
 
-/* ─── Quick-add autofill note ────────────────────────────────────── */
+/* ─── Quick-add autofill suggestions ─────────────────────────────── */
 .qa-autofill-note {
-  background: #dcfce7; color: #166534; border-radius: 10px;
-  padding: 9px 14px; font-size: 0.82rem; font-weight: 600;
+  background: #f0fdf4; border-radius: 12px;
+  padding: 12px 14px; font-size: 0.82rem;
   margin-bottom: 14px; border: 1.5px solid #bbf7d0;
+  display: flex; flex-direction: column; gap: 6px;
 }
+.qa-suggest-card {
+  background: white; border: 2px solid #bbf7d0; border-radius: 10px;
+  padding: 10px 14px; cursor: pointer; transition: all 0.15s; line-height: 1.4;
+}
+.qa-suggest-card:hover { border-color: var(--pink); background: var(--pink-pale); }
 
 /* ─── Quick-add modal form fields ────────────────────────────────── */
 #quickAddModal .form-group select,
