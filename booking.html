@@ -143,6 +143,7 @@
         if (!isQuote) quoteBtn.disabled = true;
 
         const selectedServices = Array.from(document.querySelectorAll('input[name="services"]:checked')).map(cb => cb.value);
+        const selectedAddons = Array.from(document.querySelectorAll('input[name="addons"]:checked')).map(cb => cb.value);
 
         const bookingData = {
           ownerName: form.ownerName.value,
@@ -152,6 +153,7 @@
           dogBreed: form.dogBreed.value,
           dogSize: form.dogSize.value,
           services: selectedServices,
+          addons: selectedAddons,
           preferredDate: form.preferredDate.value,
           preferredTime: form.preferredTime.value,
           notes: form.notes.value,
@@ -191,6 +193,7 @@
       const dateInput = document.getElementById('preferredDate');
       const today = new Date().toISOString().split('T')[0];
       dateInput.setAttribute('min', today);
+
     });
   </script>
 </head>
@@ -198,12 +201,12 @@
 
   <!-- NAVBAR -->
   <nav>
-    <a href="index.html" class="nav-logo">
+    <a href="/" class="nav-logo">
       <img src="images/logo.jpg" alt="Pawlished Paws Logo">
       <span>Pawlished <em>Paws</em></span>
 </a>
     <ul class="nav-links" id="navLinks">
-      <li><a href="index.html">Home</a></li>
+      <li><a href="/">Home</a></li>
       <li><a href="services.html">Services</a></li>
       <li><a href="booking.html" class="active">Book</a></li>
       <li><a href="contact.html">Contact</a></li>
@@ -231,7 +234,7 @@
         <h3>Request Sent!</h3>
         <p id="successType" style="margin-bottom:24px;">We'll confirm your appointment within 24 hours via email or phone.</p>
         <p style="font-size:0.9rem; color: var(--grey-text);">Need to get in touch sooner? Call us on <strong>+353 85 816 8317</strong></p>
-        <a href="index.html" class="btn btn-primary" style="margin-top:24px;">Back to Home 🐾</a>
+        <a href="/" class="btn btn-primary" style="margin-top:24px;">Back to Home 🐾</a>
       </div>
 
       <!-- Form -->
@@ -271,7 +274,7 @@
         <div class="form-group">
           <label for="dogSize">Dog Size *</label>
           <select id="dogSize" name="dogSize" required>
-            <option value="">-- Select size --</option>
+            <option value="">Choose your dog's size</option>
             <option value="small">Small (e.g. Shih Tzu, Chihuahua)</option>
             <option value="medium">Medium (e.g. Cocker Spaniel, Westie)</option>
             <option value="large">Large (e.g. Labrador, Collie)</option>
@@ -316,6 +319,33 @@
         </div>
         <div id="serviceError" style="display:none; color:#c0392b; font-size:0.85rem; margin-top:6px; font-weight:600;">⚠️ Please select at least one service.</div>
 
+        <!-- Add-ons (subtle) -->
+        <details class="addons-section" id="addonsSection">
+          <summary class="addons-toggle">
+            <span>✨ Want to add any extras?</span>
+            <span class="addons-toggle-hint">Nail trim, teeth brushing, blueberry facial…</span>
+          </summary>
+          <div class="addons-grid" id="addonCheckboxGrid">
+            <!-- Loaded from Firebase; static fallback below -->
+            <label class="addon-checkbox-label">
+              <input type="checkbox" name="addons" value="Nail Trim">
+              <span>Nail Trim</span><span class="addon-cb-price">+€8</span>
+            </label>
+            <label class="addon-checkbox-label">
+              <input type="checkbox" name="addons" value="Teeth Brushing">
+              <span>Teeth Brushing</span><span class="addon-cb-price">+€6</span>
+            </label>
+            <label class="addon-checkbox-label">
+              <input type="checkbox" name="addons" value="De-shed Treatment">
+              <span>De-shed Treatment</span><span class="addon-cb-price">+€10</span>
+            </label>
+            <label class="addon-checkbox-label">
+              <input type="checkbox" name="addons" value="Blueberry Facial">
+              <span>Blueberry Facial</span><span class="addon-cb-price">+€8</span>
+            </label>
+          </div>
+        </details>
+
         <div class="form-section-title">📅 Appointment Details</div>
 
         <div class="form-row">
@@ -327,7 +357,7 @@
           <div class="form-group">
             <label for="preferredTime">Preferred Time *</label>
             <select id="preferredTime" name="preferredTime" required>
-              <option value="">-- Select time --</option>
+              <option value="">Choose a preferred time</option>
               <option value="9:00am">9:00 AM</option>
               <option value="10:00am">10:00 AM</option>
               <option value="11:00am">11:00 AM</option>
@@ -388,7 +418,7 @@
       <div class="footer-col">
         <h4>Quick Links</h4>
         <ul>
-          <li><a href="index.html">Home</a></li>
+          <li><a href="/">Home</a></li>
           <li><a href="services.html">Services &amp; Pricing</a></li>
           <li><a href="booking.html">Book Online</a></li>
           <li><a href="contact.html">Contact Us</a></li>

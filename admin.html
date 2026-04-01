@@ -105,11 +105,13 @@
         const services = Array.isArray(b.services) ? b.services.join(', ') : (b.service || '–');
         const created = b.createdAt?.toDate ? b.createdAt.toDate().toLocaleDateString('en-IE') : '–';
         const quoteFlag = b.quoteRequested ? '<span class="quote-flag" title="Quote requested">💬 Quote</span>' : '';
+        const phoneSource = b.source === 'phone' ? '<span class="quote-flag" style="background:#dbeafe;color:#1d4ed8;" title="Phone booking">📞</span>' : '';
+        const customerFlags = getCustomerFlags(b);
         const statusClass = (b.status||'pending').replace('_','-');
         return `
           <tr>
             <td>
-              <div style="font-weight:700;color:var(--purple)">${b.ownerName || '–'}</div>
+              <div style="font-weight:700;color:var(--purple)">${b.ownerName || '–'} ${customerFlags} ${phoneSource}</div>
               <div style="font-size:0.8rem;color:var(--grey-text)">${b.ownerEmail || ''}</div>
               <div style="font-size:0.8rem;color:var(--grey-text)">${b.ownerPhone || ''}</div>
             </td>
@@ -224,6 +226,25 @@
       const emailBody = `Hi ${b.ownerName},\n\nThis is a friendly reminder about your grooming appointment for ${b.dogName} at Pawlished Paws.\n\nDate: ${b.preferredDate}\nTime: ${b.preferredTime}\nService: ${Array.isArray(b.services) ? b.services.join(', ') : (b.service || '')}\n\nSee you soon!\nPawlished Paws\n📞 +353 85 816 8317`;
       const mailtoLink = `mailto:${b.ownerEmail}?subject=Appointment Reminder – Pawlished Paws&body=${encodeURIComponent(emailBody)}`;
       window.open(mailtoLink);
+    };
+
+    window.sendTodayReminders = () => {
+      const today = new Date().toISOString().split('T')[0];
+      const todayBks = allBookings.filter(b =>
+        b.preferredDate === today && b.ownerEmail && b.status !== 'cancelled'
+      );
+      if (todayBks.length === 0) {
+        showToast('No email bookings found for today.');
+        return;
+      }
+      if (!confirm(`Open reminder emails for ${todayBks.length} booking${todayBks.length !== 1 ? 's' : ''} today? Your email app will open once for each.`)) return;
+      todayBks.forEach((b, i) => {
+        const services = Array.isArray(b.services) ? b.services.join(', ') : (b.service || '');
+        const body = `Hi ${b.ownerName},\n\nJust a friendly reminder that ${b.dogName} has a grooming appointment at Pawlished Paws today!\n\nTime: ${b.preferredTime || 'as arranged'}\nService: ${services}\n\nSee you soon!\nPawlished Paws\n📞 +353 85 816 8317`;
+        setTimeout(() => {
+          window.open(`mailto:${b.ownerEmail}?subject=Your Grooming Appointment Today – Pawlished Paws&body=${encodeURIComponent(body)}`);
+        }, i * 800);
+      });
     };
 
     // Show/hide completed toggle
@@ -436,7 +457,7 @@
         const isPast = dateStr < today;
         html += `<div class="cal-day ${isToday?'today':''} ${isUnavail?'unavail':''} ${isPast&&!isToday?'past':''}">
           <div class="cal-day-num">${d}</div>
-          ${bks.slice(0,3).map(b => `<div class="cal-booking-dot" title="${b.dogName} – ${b.ownerName}\n${Array.isArray(b.services)?b.services.join(', '):(b.service||'')} @ ${b.preferredTime||''}">${b.dogName||'?'}</div>`).join('')}
+          ${bks.slice(0,3).map(b => `<div class="cal-booking-dot" onclick="openBookingDetail('${b.id}')" title="View ${b.dogName} — ${b.ownerName} @ ${b.preferredTime||''}">${b.dogName||'?'}</div>`).join('')}
           ${bks.length > 3 ? `<div class="cal-more">+${bks.length-3} more</div>` : ''}
           ${isUnavail ? '<div class="cal-unavail-label">Closed</div>' : ''}
         </div>`;
@@ -658,6 +679,221 @@
           <div class="bar-track"><div class="bar-fill" style="width:${Math.round((count/sizeMax)*100)}%"></div></div>
           <div class="bar-count">${count}</div>
         </div>`).join('');
+
+      // ── Revenue / upcoming metrics ────────────────────────────
+      function parsePrice(priceStr) {
+        if (!priceStr) return 0;
+        const m = priceStr.match(/(\d+)/);
+        return m ? parseInt(m[1]) : 0;
+      }
+      function estimateValue(bookings) {
+        return bookings.reduce((sum, b) => {
+          const svcs = Array.isArray(b.services) ? b.services : (b.service ? [b.service] : []);
+          svcs.forEach(svcName => {
+            const svc = allServices.find(s => s.name === svcName);
+            if (svc) sum += parsePrice(svc.price);
+          });
+          if (Array.isArray(b.addons)) {
+            b.addons.forEach(addonName => {
+              const addon = allServices.find(s => s.name === addonName);
+              if (addon) sum += parsePrice(addon.price);
+            });
+          }
+          return sum;
+        }, 0);
+      }
+
+      const todayStr = new Date().toISOString().split('T')[0];
+      const todayBks = allBookings.filter(b => b.preferredDate === todayStr && b.status !== 'cancelled');
+      const todayVal = estimateValue(todayBks);
+
+      // This week: Mon–Sun
+      const ws = new Date();
+      ws.setDate(ws.getDate() - ((ws.getDay() + 6) % 7));
+      const weekStartStr = ws.toISOString().split('T')[0];
+      const we = new Date(ws); we.setDate(we.getDate() + 6);
+      const weekEndStr = we.toISOString().split('T')[0];
+      const weekBks = allBookings.filter(b =>
+        b.preferredDate >= weekStartStr && b.preferredDate <= weekEndStr &&
+        (b.status === 'confirmed' || b.status === 'completed')
+      );
+      const weekVal = estimateValue(weekBks);
+
+      // Upcoming confirmed (future dates)
+      const upcomingBks = allBookings.filter(b => b.preferredDate > todayStr && b.status === 'confirmed');
+      const upcomingVal = estimateValue(upcomingBks);
+
+      document.getElementById('mToday').textContent =
+        todayBks.length + (todayVal > 0 ? `  ·  €${todayVal}+` : '');
+      document.getElementById('mThisWeek').textContent =
+        weekBks.length + (weekVal > 0 ? `  ·  €${weekVal}+` : '');
+      document.getElementById('mUpcoming').textContent =
+        upcomingBks.length + (upcomingVal > 0 ? `  ·  €${upcomingVal}+` : '');
+
+      // ── Heatmap ───────────────────────────────────────────────
+      renderHeatmap();
+    }
+
+    function renderHeatmap() {
+      const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+      const dayNums = [1,2,3,4,5,6,0]; // getDay() values Mon=1…Sun=0
+      const hours = [8,9,10,11,12,13,14,15,16,17];
+
+      // Initialise count matrix
+      const counts = {};
+      days.forEach(d => { counts[d] = {}; hours.forEach(h => { counts[d][h] = 0; }); });
+
+      let maxCount = 0;
+      allBookings.filter(b => b.status !== 'cancelled').forEach(b => {
+        if (!b.preferredDate || !b.preferredTime) return;
+        const jsDay = new Date(b.preferredDate + 'T12:00:00').getDay();
+        const dayIdx = dayNums.indexOf(jsDay);
+        if (dayIdx < 0) return;
+        const dayName = days[dayIdx];
+        const hour = parseInt((b.preferredTime || '').split(':')[0]);
+        if (isNaN(hour) || hour < 8 || hour > 17) return;
+        counts[dayName][hour]++;
+        if (counts[dayName][hour] > maxCount) maxCount = counts[dayName][hour];
+      });
+
+      const heatmapEl = document.getElementById('heatmapGrid');
+      if (!heatmapEl) return;
+
+      if (maxCount === 0) {
+        heatmapEl.innerHTML = '<p style="color:var(--grey-text);text-align:center;padding:20px;">No time data yet — bookings need a date and time for the heatmap to populate.</p>';
+        return;
+      }
+
+      let html = '<div class="heatmap-wrap"><div class="heatmap-row"><div class="heatmap-time-label"></div>';
+      days.forEach(d => { html += `<div class="heatmap-day-label">${d}</div>`; });
+      html += '</div>';
+
+      hours.forEach(h => {
+        const label = h < 12 ? `${h}am` : h === 12 ? '12pm' : `${h-12}pm`;
+        html += `<div class="heatmap-row"><div class="heatmap-time-label">${label}</div>`;
+        days.forEach(d => {
+          const c = counts[d][h];
+          const intensity = maxCount > 0 ? c / maxCount : 0;
+          const alpha = c === 0 ? 0.05 : 0.18 + intensity * 0.82;
+          const textCol = intensity > 0.55 ? '#fff' : 'var(--purple)';
+          html += `<div class="heatmap-cell" style="background:rgba(214,51,132,${alpha.toFixed(2)});color:${textCol};" title="${d} ${label}: ${c} booking${c !== 1 ? 's' : ''}">${c > 0 ? c : ''}</div>`;
+        });
+        html += '</div>';
+      });
+      html += '</div>';
+
+      // Legend
+      html += `<div class="heatmap-legend">
+        <span style="color:var(--grey-text);font-size:0.75rem;">Quiet</span>
+        <div class="heatmap-legend-bar"></div>
+        <span style="color:var(--grey-text);font-size:0.75rem;">Busy</span>
+      </div>`;
+
+      heatmapEl.innerHTML = html;
+    }
+
+    // ─── QUICK-ADD PHONE BOOKING ──────────────────────────────
+    window.openQuickAdd = () => {
+      document.getElementById('qaForm').reset();
+      // pre-fill today's date
+      document.getElementById('qaDate').value = new Date().toISOString().split('T')[0];
+      // populate services from loaded list
+      const sel = document.getElementById('qaServices');
+      sel.innerHTML = allServices.filter(s => s.type === 'main' && s.active !== false)
+        .map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+      document.getElementById('quickAddModal').style.display = 'flex';
+    };
+    window.closeQuickAdd = () => { document.getElementById('quickAddModal').style.display = 'none'; };
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('qaForm').addEventListener('submit', async e => {
+        e.preventDefault();
+        const services = Array.from(document.getElementById('qaServices').selectedOptions).map(o => o.value);
+        const data = {
+          ownerName: document.getElementById('qaOwnerName').value,
+          ownerPhone: document.getElementById('qaOwnerPhone').value,
+          ownerEmail: document.getElementById('qaOwnerEmail').value,
+          dogName: document.getElementById('qaDogName').value,
+          dogBreed: document.getElementById('qaDogBreed').value,
+          dogSize: document.getElementById('qaDogSize').value,
+          services,
+          preferredDate: document.getElementById('qaDate').value,
+          preferredTime: document.getElementById('qaTime').value,
+          notes: document.getElementById('qaNotes').value,
+          status: 'confirmed',
+          source: 'phone',
+          createdAt: serverTimestamp()
+        };
+        const ref = await addDoc(collection(db, 'bookings'), data);
+        allBookings.unshift({ id: ref.id, ...data });
+        renderBookings(); updateStats(); renderCalendar(); renderMetrics();
+        closeQuickAdd();
+        showToast('Phone booking added!');
+      });
+    });
+
+    // ─── CUSTOMER HISTORY ─────────────────────────────────────
+    window.searchCustomerHistory = () => {
+      const q = document.getElementById('customerSearchInput').value.trim().toLowerCase();
+      const results = document.getElementById('customerResults');
+      if (!q) { results.innerHTML = ''; return; }
+      const matches = allBookings.filter(b =>
+        (b.ownerEmail || '').toLowerCase().includes(q) ||
+        (b.ownerPhone || '').replace(/\s/g,'').includes(q.replace(/\s/g,'')) ||
+        (b.ownerName || '').toLowerCase().includes(q)
+      );
+      if (matches.length === 0) {
+        results.innerHTML = '<p style="color:var(--grey-text);text-align:center;padding:16px;">No bookings found for that search.</p>';
+        return;
+      }
+      const owner = matches[0];
+      const totalVisits = matches.filter(b => b.status === 'completed').length;
+      const lastVisit = matches.find(b => b.status === 'completed');
+      const lastDate = lastVisit ? lastVisit.preferredDate : null;
+      const isFirst = totalVisits === 0;
+      const missedLast = matches[0]?.status === 'cancelled';
+
+      results.innerHTML = `
+        <div class="customer-history-header">
+          <div>
+            <div style="font-size:1.1rem;font-weight:800;color:var(--purple)">${owner.ownerName || 'Unknown'}</div>
+            <div style="font-size:0.85rem;color:var(--grey-text)">${owner.ownerEmail || ''} · ${owner.ownerPhone || ''}</div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            ${isFirst ? '<span class="flag-badge first-time">🆕 First visit</span>' : ''}
+            ${missedLast ? '<span class="flag-badge missed">⚠️ Missed last booking</span>' : ''}
+            <span class="flag-badge">${totalVisits} completed visit${totalVisits !== 1 ? 's' : ''}</span>
+            ${lastDate ? `<span class="flag-badge">Last visit: ${lastDate}</span>` : ''}
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px;">
+          ${matches.map(b => {
+            const sc = (b.status||'pending').replace('_','-');
+            const svcs = Array.isArray(b.services) ? b.services.join(', ') : (b.service||'');
+            return `<div class="customer-booking-row">
+              <span style="font-weight:700;color:var(--purple)">${b.preferredDate||'?'}</span>
+              <span style="font-size:0.85rem;">${svcs}</span>
+              <span class="status-pill status-${sc}">${b.status||'pending'}</span>
+              <button class="action-btn" onclick="openBookingDetail('${b.id}')">🔍</button>
+            </div>`;
+          }).join('')}
+        </div>`;
+    };
+
+    // ─── FIRST-TIME & MISSED FLAGS IN BOOKINGS TABLE ──────────
+    function getCustomerFlags(booking) {
+      if (!booking.ownerEmail && !booking.ownerPhone) return '';
+      const key = (booking.ownerEmail || booking.ownerPhone || '').toLowerCase();
+      const history = allBookings.filter(b =>
+        ((b.ownerEmail || '').toLowerCase() === key || (b.ownerPhone || '') === (booking.ownerPhone || '')) &&
+        b.id !== booking.id
+      );
+      const completed = history.filter(b => b.status === 'completed');
+      const flags = [];
+      if (completed.length === 0 && history.length === 0) flags.push('<span class="flag-badge first-time" title="First time booking">🆕</span>');
+      const lastOther = history.sort((a,b) => (b.preferredDate||'') > (a.preferredDate||'') ? 1 : -1)[0];
+      if (lastOther?.status === 'cancelled') flags.push('<span class="flag-badge missed" title="Missed or cancelled last booking">⚠️</span>');
+      return flags.join(' ');
     }
 
     // ─── TABS ──────────────────────────────────────────────────
@@ -708,14 +944,14 @@
 
   <!-- Top bar -->
   <div class="admin-topbar">
-    <a href="index.html" class="admin-topbar-logo" target="_blank" title="View website">
+    <a href="/" class="admin-topbar-logo" target="_blank" title="View website">
       <img src="images/logo.jpg" alt="Pawlished Paws">
       <span>Pawlished <em>Paws</em> <span style="font-weight:400;font-size:0.8rem;opacity:0.7;">Admin</span></span>
     </a>
     <div class="admin-topbar-right">
       <span id="adminEmail" style="font-size:0.85rem;color:var(--grey-text);"></span>
       <button id="logoutBtn" class="btn-sm btn-outline">Sign Out</button>
-      <a href="index.html" class="btn-sm btn-outline" target="_blank">View Site →</a>
+      <a href="/" class="btn-sm btn-outline" target="_blank">View Site →</a>
     </div>
   </div>
 
@@ -742,7 +978,11 @@
     <div class="tab-panel active" id="tab-bookings">
       <div class="bookings-toolbar">
         <h3 style="margin:0;color:var(--purple);">All Booking Requests</h3>
-        <button id="toggleCompletedBtn" class="btn-sm btn-outline">👁️ Show Completed</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-primary" style="padding:7px 16px;font-size:0.85rem;" onclick="openQuickAdd()">📞 Add Phone Booking</button>
+          <button class="btn-sm btn-outline" onclick="sendTodayReminders()" title="Open reminder emails for all of today's bookings">✉️ Today's Reminders</button>
+          <button id="toggleCompletedBtn" class="btn-sm btn-outline">👁️ Show Completed</button>
+        </div>
       </div>
       <div class="table-scroll-wrap">
         <table class="bookings-table">
@@ -762,6 +1002,17 @@
             <tr><td colspan="8" style="text-align:center;padding:32px;color:var(--grey-text);">Loading…</td></tr>
           </tbody>
         </table>
+      </div>
+
+      <!-- Customer History search -->
+      <div class="customer-history-box">
+        <h4>🔍 Customer History</h4>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+          <input type="text" id="customerSearchInput" placeholder="Search by name, email or phone…"
+            style="flex:1;padding:9px 14px;border:2px solid #e8d5f0;border-radius:10px;font-family:inherit;font-size:0.88rem;color:var(--purple);"
+            oninput="searchCustomerHistory()">
+        </div>
+        <div id="customerResults"></div>
       </div>
     </div>
 
@@ -885,6 +1136,31 @@
     <div class="tab-panel" id="tab-metrics">
       <h3 style="color:var(--purple);margin-bottom:20px;">📊 Business Metrics</h3>
 
+      <!-- Revenue strip -->
+      <div class="revenue-strip">
+        <div class="revenue-card">
+          <div class="revenue-icon">📅</div>
+          <div class="revenue-body">
+            <div class="revenue-label">Today's Bookings</div>
+            <div class="revenue-num" id="mToday">–</div>
+          </div>
+        </div>
+        <div class="revenue-card">
+          <div class="revenue-icon">📆</div>
+          <div class="revenue-body">
+            <div class="revenue-label">This Week (Confirmed)</div>
+            <div class="revenue-num" id="mThisWeek">–</div>
+          </div>
+        </div>
+        <div class="revenue-card">
+          <div class="revenue-icon">💰</div>
+          <div class="revenue-body">
+            <div class="revenue-label">Upcoming Booked Value</div>
+            <div class="revenue-num" id="mUpcoming">–</div>
+          </div>
+        </div>
+      </div>
+
       <div class="metrics-grid">
         <div class="metric-card"><div class="metric-num" id="mTotal">–</div><div class="metric-label">Total Bookings</div></div>
         <div class="metric-card pink"><div class="metric-num" id="mThisMonth">–</div><div class="metric-label">This Month</div></div>
@@ -895,6 +1171,13 @@
         <div class="metric-card red"><div class="metric-num" id="mCancelled">–</div><div class="metric-label">Cancelled</div></div>
         <div class="metric-card purple"><div class="metric-num" id="mQuotes">–</div><div class="metric-label">Quote Requests</div></div>
         <div class="metric-card"><div class="metric-num" id="mRate">–</div><div class="metric-label">Completion Rate</div></div>
+      </div>
+
+      <!-- Heatmap -->
+      <div class="chart-section" style="margin-bottom:20px;">
+        <h4>Booking Heatmap — Busiest Times</h4>
+        <p style="color:var(--grey-text);font-size:0.8rem;margin:-10px 0 14px;">Darker = more bookings. Based on all confirmed and completed appointments.</p>
+        <div id="heatmapGrid"><p style="color:var(--grey-text);text-align:center;padding:20px;">No data yet.</p></div>
       </div>
 
       <div class="charts-grid">
@@ -990,6 +1273,79 @@
       <button onclick="closeBookingDetail()" class="modal-close">✕</button>
     </div>
     <div id="bookingDetailContent"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════ QUICK-ADD PHONE BOOKING MODAL ══════════ -->
+<div id="quickAddModal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closeQuickAdd()">
+  <div class="modal-card" style="max-width:600px;">
+    <div class="modal-header">
+      <h3>📞 Add Phone Booking</h3>
+      <button onclick="closeQuickAdd()" class="modal-close">✕</button>
+    </div>
+    <p style="color:var(--grey-text);font-size:0.88rem;margin:-8px 0 20px;">Log a booking taken over the phone. It'll be marked as Confirmed and flagged with 📞 in your bookings list.</p>
+    <form id="qaForm">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Owner Name *</label>
+          <input type="text" id="qaOwnerName" placeholder="e.g. Sarah Murphy" required>
+        </div>
+        <div class="form-group">
+          <label>Phone Number *</label>
+          <input type="tel" id="qaOwnerPhone" placeholder="e.g. 085 816 8317" required>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Email (optional)</label>
+        <input type="email" id="qaOwnerEmail" placeholder="e.g. sarah@email.com">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Dog's Name *</label>
+          <input type="text" id="qaDogName" placeholder="e.g. Buddy" required>
+        </div>
+        <div class="form-group">
+          <label>Breed (optional)</label>
+          <input type="text" id="qaDogBreed" placeholder="e.g. Labrador">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Dog Size</label>
+          <select id="qaDogSize">
+            <option value="">Not specified</option>
+            <option value="small">Small (under 10kg)</option>
+            <option value="medium">Medium (10–25kg)</option>
+            <option value="large">Large (25–40kg)</option>
+            <option value="giant">Giant (over 40kg)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Service *</label>
+          <select id="qaServices" required>
+            <option value="">Loading…</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Date *</label>
+          <input type="date" id="qaDate" required>
+        </div>
+        <div class="form-group">
+          <label>Time</label>
+          <input type="time" id="qaTime" value="09:00">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Notes (optional)</label>
+        <textarea id="qaNotes" rows="2" placeholder="Any special requests or notes from the call…"></textarea>
+      </div>
+      <div style="display:flex;gap:12px;margin-top:8px;">
+        <button type="submit" class="btn btn-primary" style="flex:1;">Save Booking</button>
+        <button type="button" class="btn btn-outline" onclick="closeQuickAdd()" style="flex:1;">Cancel</button>
+      </div>
+    </form>
   </div>
 </div>
 
@@ -1110,7 +1466,8 @@ body.admin-body { background: #f7f0fc; min-height: 100vh; padding: 0; margin: 0;
 .cal-day.unavail { background: #f3f4f6; opacity: 0.7; }
 .cal-day.past { opacity: 0.5; }
 .cal-day-num { font-weight: 700; font-size: 0.85rem; color: var(--purple); margin-bottom: 3px; }
-.cal-booking-dot { background: var(--pink); color: white; border-radius: 5px; padding: 2px 5px; font-size: 0.68rem; font-weight: 700; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: default; }
+.cal-booking-dot { background: var(--pink); color: white; border-radius: 5px; padding: 2px 5px; font-size: 0.68rem; font-weight: 700; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; transition: background 0.15s; }
+.cal-booking-dot:hover { background: var(--purple); }
 .cal-unavail-label { font-size: 0.68rem; color: #9ca3af; font-weight: 600; }
 .cal-more { font-size: 0.68rem; color: var(--pink); font-weight: 700; }
 
@@ -1209,6 +1566,78 @@ body.admin-body { background: #f7f0fc; min-height: 100vh; padding: 0; margin: 0;
 .service-hidden { opacity: 0.55; }
 .service-hidden .service-admin-name { text-decoration: line-through; }
 
+/* ─── Flag badges (first-time / missed) ──────────────────────────── */
+.flag-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px; border-radius: 10px; font-size: 0.72rem; font-weight: 700;
+  background: #f0e6f6; color: var(--purple); white-space: nowrap;
+}
+.flag-badge.first-time { background: #dcfce7; color: #166534; }
+.flag-badge.missed { background: #fff7ed; color: #c2410c; }
+
+/* ─── Customer history box ───────────────────────────────────────── */
+.customer-history-box {
+  margin-top: 24px; background: white; border-radius: 16px;
+  padding: 22px 24px; box-shadow: 0 2px 12px rgba(74,16,64,0.06);
+  border: 2px solid #f0e6f6;
+}
+.customer-history-box h4 { color: var(--purple); margin: 0 0 14px; font-size: 1rem; }
+.customer-history-header {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  gap: 12px; flex-wrap: wrap; background: var(--pink-pale);
+  border-radius: 12px; padding: 14px 16px; margin-bottom: 4px;
+}
+.customer-booking-row {
+  display: grid; grid-template-columns: 110px 1fr auto auto; align-items: center;
+  gap: 10px; background: #faf5ff; border-radius: 10px; padding: 10px 14px;
+  font-size: 0.85rem;
+}
+
+/* ─── Revenue strip ──────────────────────────────────────────────── */
+.revenue-strip {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 24px;
+}
+.revenue-card {
+  background: white; border-radius: 14px; padding: 18px 20px;
+  box-shadow: 0 2px 10px rgba(74,16,64,0.06); border: 2px solid var(--pink);
+  background: var(--pink-pale); display: flex; align-items: center; gap: 14px;
+}
+.revenue-icon { font-size: 1.6rem; line-height: 1; }
+.revenue-body { flex: 1; min-width: 0; }
+.revenue-label { font-size: 0.7rem; color: var(--grey-text); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+.revenue-num { font-size: 1.4rem; font-weight: 900; color: var(--purple); line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ─── Heatmap ─────────────────────────────────────────────────────── */
+.heatmap-wrap { overflow-x: auto; }
+.heatmap-row { display: grid; grid-template-columns: 44px repeat(7, 1fr); gap: 3px; margin-bottom: 3px; }
+.heatmap-time-label { font-size: 0.7rem; color: var(--grey-text); font-weight: 600; display: flex; align-items: center; padding-right: 4px; white-space: nowrap; }
+.heatmap-day-label { font-size: 0.72rem; color: var(--purple); font-weight: 800; text-align: center; text-transform: uppercase; letter-spacing: 0.04em; padding: 4px 2px; }
+.heatmap-cell {
+  border-radius: 7px; height: 36px; display: flex; align-items: center;
+  justify-content: center; font-size: 0.75rem; font-weight: 700;
+  cursor: default; transition: transform 0.15s; min-width: 0;
+}
+.heatmap-cell:hover { transform: scale(1.1); z-index: 10; position: relative; }
+.heatmap-legend { display: flex; align-items: center; gap: 10px; margin-top: 14px; justify-content: flex-end; }
+.heatmap-legend-bar {
+  width: 120px; height: 10px; border-radius: 20px;
+  background: linear-gradient(90deg, rgba(214,51,132,0.08) 0%, rgba(214,51,132,1) 100%);
+}
+
+/* ─── Quick-add modal form fields ────────────────────────────────── */
+#quickAddModal .form-group select,
+#quickAddModal .form-group input,
+#quickAddModal .form-group textarea {
+  width: 100%; padding: 10px 14px; border: 2px solid #e8d5f0; border-radius: 10px;
+  font-family: inherit; font-size: 0.9rem; color: var(--purple); box-sizing: border-box;
+}
+#quickAddModal .form-group label {
+  display: block; font-size: 0.8rem; font-weight: 700; color: var(--purple);
+  margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.04em;
+}
+#quickAddModal .form-group { margin-bottom: 14px; }
+#quickAddModal .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
 /* ─── Mobile ─────────────────────────────────────────────────────── */
 @media (max-width: 900px) {
   .settings-grid { grid-template-columns: 1fr; }
@@ -1219,6 +1648,9 @@ body.admin-body { background: #f7f0fc; min-height: 100vh; padding: 0; margin: 0;
   .stats-strip { grid-template-columns: repeat(2, 1fr); }
   .admin-topbar { padding: 12px 16px; }
   .admin-container { padding: 16px 12px 40px; }
+  .revenue-strip { grid-template-columns: 1fr; }
+  #quickAddModal .form-row { grid-template-columns: 1fr; }
+  .customer-booking-row { grid-template-columns: 90px 1fr auto auto; gap: 6px; }
 }
 @media (max-width: 600px) {
   .stats-strip { grid-template-columns: repeat(2, 1fr); gap: 10px; }
@@ -1234,6 +1666,11 @@ body.admin-body { background: #f7f0fc; min-height: 100vh; padding: 0; margin: 0;
   .cal-booking-dot { font-size: 0.6rem; padding: 1px 3px; }
   .bar-item { grid-template-columns: 70px 1fr 28px; gap: 6px; }
   .unavail-add-row { flex-direction: column; }
+  .revenue-strip { grid-template-columns: 1fr; gap: 10px; }
+  .heatmap-row { grid-template-columns: 36px repeat(7, 1fr); gap: 2px; }
+  .heatmap-cell { height: 28px; font-size: 0.65rem; }
+  .customer-history-box { padding: 16px; }
+  .customer-booking-row { grid-template-columns: 1fr; gap: 4px; }
 }
 </style>
 

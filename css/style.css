@@ -684,6 +684,53 @@ textarea { resize: vertical; min-height: 100px; }
   color: var(--purple) !important;
   font-weight: 700;
 }
+
+/* ── Add-ons section (booking) ───────────────────────────── */
+.addons-section {
+  margin: 4px 0 20px;
+  border: 2px dashed #e8d5f0;
+  border-radius: 14px;
+  overflow: hidden;
+}
+.addons-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--purple);
+  font-size: 0.92rem;
+  list-style: none;
+  user-select: none;
+}
+.addons-toggle::-webkit-details-marker { display: none; }
+.addons-toggle:hover { background: var(--pink-pale); }
+.addons-toggle-hint { font-size: 0.8rem; color: var(--grey-text); font-weight: 500; }
+.addons-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 16px 16px;
+  background: #fdf8ff;
+}
+.addon-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: white;
+  border: 2px solid #e8d5f0;
+  border-radius: 20px;
+  padding: 6px 14px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--purple);
+  transition: all 0.15s;
+}
+.addon-checkbox-label:hover { border-color: var(--pink); background: var(--pink-pale); }
+.addon-checkbox-label input { accent-color: var(--pink); }
+.addon-cb-price { color: var(--pink); font-weight: 700; font-size: 0.8rem; margin-left: 2px; }
 .quote-request-text {
   text-align: center;
   font-size: 0.82rem;
