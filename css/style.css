@@ -140,10 +140,30 @@ nav {
   font-size: 0.85rem;
   padding: 6px 16px;
   border-radius: 50px;
-  margin-bottom: 20px;
+  margin-bottom: 18px;
   margin-left: auto;
   margin-right: auto;
   letter-spacing: 0.5px;
+}
+.hero-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 0 auto 22px;
+  max-width: 260px;
+}
+.hero-divider span:first-child,
+.hero-divider span:last-child {
+  flex: 1;
+  height: 1.5px;
+  background: linear-gradient(90deg, transparent, rgba(214,51,132,0.35), transparent);
+  display: block;
+}
+.hero-divider-paw {
+  font-size: 1rem;
+  opacity: 0.6;
+  flex: none;
 }
 .hero h1 { color: var(--purple); margin-bottom: 20px; }
 .hero h1 span { color: var(--pink); }

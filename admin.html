@@ -86,6 +86,7 @@
       updateStats();
       renderCalendar();
       renderMetrics();
+      renderRevenue();
     }
 
     function renderBookings() {
@@ -151,6 +152,7 @@
       if (b) b.status = status;
       updateStats();
       renderMetrics();
+      renderRevenue();
       // Only re-render if hiding completed might change what's visible
       if (!showCompleted && status === 'completed') renderBookings();
     };
@@ -681,33 +683,10 @@
         </div>`).join('');
 
       // ── Revenue / upcoming metrics ────────────────────────────
-      function parsePrice(priceStr) {
-        if (!priceStr) return 0;
-        const m = priceStr.match(/(\d+)/);
-        return m ? parseInt(m[1]) : 0;
-      }
-      function estimateValue(bookings) {
-        return bookings.reduce((sum, b) => {
-          const svcs = Array.isArray(b.services) ? b.services : (b.service ? [b.service] : []);
-          svcs.forEach(svcName => {
-            const svc = allServices.find(s => s.name === svcName);
-            if (svc) sum += parsePrice(svc.price);
-          });
-          if (Array.isArray(b.addons)) {
-            b.addons.forEach(addonName => {
-              const addon = allServices.find(s => s.name === addonName);
-              if (addon) sum += parsePrice(addon.price);
-            });
-          }
-          return sum;
-        }, 0);
-      }
-
       const todayStr = new Date().toISOString().split('T')[0];
       const todayBks = allBookings.filter(b => b.preferredDate === todayStr && b.status !== 'cancelled');
-      const todayVal = estimateValue(todayBks);
+      const todayVal = todayBks.reduce((s, b) => s + estimateBookingValue(b), 0);
 
-      // This week: Mon–Sun
       const ws = new Date();
       ws.setDate(ws.getDate() - ((ws.getDay() + 6) % 7));
       const weekStartStr = ws.toISOString().split('T')[0];
@@ -717,11 +696,10 @@
         b.preferredDate >= weekStartStr && b.preferredDate <= weekEndStr &&
         (b.status === 'confirmed' || b.status === 'completed')
       );
-      const weekVal = estimateValue(weekBks);
+      const weekVal = weekBks.reduce((s, b) => s + estimateBookingValue(b), 0);
 
-      // Upcoming confirmed (future dates)
       const upcomingBks = allBookings.filter(b => b.preferredDate > todayStr && b.status === 'confirmed');
-      const upcomingVal = estimateValue(upcomingBks);
+      const upcomingVal = upcomingBks.reduce((s, b) => s + estimateBookingValue(b), 0);
 
       document.getElementById('mToday').textContent =
         todayBks.length + (todayVal > 0 ? `  ·  €${todayVal}+` : '');
@@ -795,12 +773,31 @@
     // ─── QUICK-ADD PHONE BOOKING ──────────────────────────────
     window.openQuickAdd = () => {
       document.getElementById('qaForm').reset();
-      // pre-fill today's date
       document.getElementById('qaDate').value = new Date().toISOString().split('T')[0];
-      // populate services from loaded list
+      document.getElementById('qaAutofillNote').style.display = 'none';
+
+      // Main services
       const sel = document.getElementById('qaServices');
-      sel.innerHTML = allServices.filter(s => s.type === 'main' && s.active !== false)
-        .map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+      sel.innerHTML = '<option value="">Choose a service…</option>' +
+        allServices.filter(s => s.type === 'main' && s.active !== false)
+          .map(s => `<option value="${s.name}">${s.name}${s.price ? '  –  ' + s.price : ''}</option>`).join('');
+
+      // Add-ons
+      const addons = allServices.filter(s => s.type === 'addon' && s.active !== false);
+      const wrapper = document.getElementById('qaAddonsWrapper');
+      const grid = document.getElementById('qaAddonsGrid');
+      if (addons.length > 0) {
+        grid.innerHTML = addons.map(s => `
+          <label class="qa-addon-label">
+            <input type="checkbox" name="qaAddon" value="${s.name}">
+            <span>${s.name}</span>
+            ${s.price ? `<span class="qa-addon-price">${s.price}</span>` : ''}
+          </label>`).join('');
+        wrapper.style.display = 'block';
+      } else {
+        wrapper.style.display = 'none';
+      }
+
       document.getElementById('quickAddModal').style.display = 'flex';
     };
     window.closeQuickAdd = () => { document.getElementById('quickAddModal').style.display = 'none'; };
@@ -865,7 +862,8 @@
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('qaForm').addEventListener('submit', async e => {
         e.preventDefault();
-        const services = Array.from(document.getElementById('qaServices').selectedOptions).map(o => o.value);
+        const mainService = document.getElementById('qaServices').value;
+        const addons = Array.from(document.querySelectorAll('input[name="qaAddon"]:checked')).map(i => i.value);
         const data = {
           ownerName: document.getElementById('qaOwnerName').value,
           ownerPhone: document.getElementById('qaOwnerPhone').value,
@@ -873,7 +871,8 @@
           dogName: document.getElementById('qaDogName').value,
           dogBreed: document.getElementById('qaDogBreed').value,
           dogSize: document.getElementById('qaDogSize').value,
-          services,
+          services: mainService ? [mainService] : [],
+          addons: addons.length ? addons : [],
           preferredDate: document.getElementById('qaDate').value,
           preferredTime: document.getElementById('qaTime').value,
           notes: document.getElementById('qaNotes').value,
@@ -910,6 +909,11 @@
       const isFirst = totalVisits === 0;
       const missedLast = matches[0]?.status === 'cancelled';
 
+      const grandTotal = matches.reduce((s, b) => s + estimateBookingValue(b), 0);
+      const completedTotal = matches
+        .filter(b => b.status === 'completed')
+        .reduce((s, b) => s + estimateBookingValue(b), 0);
+
       results.innerHTML = `
         <div class="customer-history-header">
           <div>
@@ -921,20 +925,30 @@
             ${missedLast ? '<span class="flag-badge missed">⚠️ Missed last booking</span>' : ''}
             <span class="flag-badge">${totalVisits} completed visit${totalVisits !== 1 ? 's' : ''}</span>
             ${lastDate ? `<span class="flag-badge">Last visit: ${lastDate}</span>` : ''}
+            ${completedTotal > 0 ? `<span class="flag-badge" style="background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;">💰 €${completedTotal}+ earned</span>` : ''}
           </div>
         </div>
-        <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px;">
+        <div style="display:flex;flex-direction:column;gap:6px;margin-top:12px;">
           ${matches.map(b => {
             const sc = (b.status||'pending').replace('_','-');
             const svcs = Array.isArray(b.services) ? b.services.join(', ') : (b.service||'');
+            const addons = Array.isArray(b.addons) && b.addons.length ? ' + ' + b.addons.join(', ') : '';
+            const val = estimateBookingValue(b);
+            const valStr = val > 0 ? `€${val}+` : '';
             return `<div class="customer-booking-row">
-              <span style="font-weight:700;color:var(--purple)">${b.preferredDate||'?'}</span>
-              <span style="font-size:0.85rem;">${svcs}</span>
+              <span style="font-weight:700;color:var(--purple);white-space:nowrap;">${b.preferredDate||'?'}</span>
+              <span style="font-size:0.83rem;">${svcs}${addons}</span>
+              ${valStr ? `<span style="font-weight:800;color:var(--pink);white-space:nowrap;">${valStr}</span>` : '<span></span>'}
               <span class="status-pill status-${sc}">${b.status||'pending'}</span>
               <button class="action-btn" onclick="openBookingDetail('${b.id}')">🔍</button>
             </div>`;
           }).join('')}
-        </div>`;
+        </div>
+        ${grandTotal > 0 ? `
+        <div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:14px;padding-top:12px;border-top:2px solid #f0e6f6;">
+          <span style="font-size:0.82rem;color:var(--grey-text);font-weight:600;">Estimated lifetime value</span>
+          <span style="font-size:1.3rem;font-weight:900;color:var(--purple);">€${grandTotal}+</span>
+        </div>` : ''}`;
     };
 
     // ─── FIRST-TIME & MISSED FLAGS IN BOOKINGS TABLE ──────────
@@ -951,6 +965,128 @@
       const lastOther = history.sort((a,b) => (b.preferredDate||'') > (a.preferredDate||'') ? 1 : -1)[0];
       if (lastOther?.status === 'cancelled') flags.push('<span class="flag-badge missed" title="Missed or cancelled last booking">⚠️</span>');
       return flags.join(' ');
+    }
+
+    // ─── REVENUE TAB ──────────────────────────────────────────
+    function renderRevenue() {
+      const now = new Date();
+      const todayStr = now.toISOString().split('T')[0];
+
+      // Today
+      const todayBks = allBookings.filter(b => b.preferredDate === todayStr && b.status !== 'cancelled');
+      const todayVal = todayBks.reduce((s, b) => s + estimateBookingValue(b), 0);
+      document.getElementById('revToday').textContent = todayVal > 0 ? `€${todayVal}+` : '–';
+      document.getElementById('revTodaySub').textContent = `${todayBks.length} booking${todayBks.length !== 1 ? 's' : ''}`;
+
+      // This week Mon–Sun
+      const ws = new Date(now); ws.setDate(ws.getDate() - ((ws.getDay() + 6) % 7));
+      const we = new Date(ws); we.setDate(we.getDate() + 6);
+      const weekBks = allBookings.filter(b =>
+        b.preferredDate >= ws.toISOString().split('T')[0] &&
+        b.preferredDate <= we.toISOString().split('T')[0] &&
+        (b.status === 'confirmed' || b.status === 'completed')
+      );
+      const weekVal = weekBks.reduce((s, b) => s + estimateBookingValue(b), 0);
+      document.getElementById('revWeek').textContent = weekVal > 0 ? `€${weekVal}+` : '–';
+      document.getElementById('revWeekSub').textContent = `${weekBks.length} booking${weekBks.length !== 1 ? 's' : ''}`;
+
+      // This month
+      const thisMonthStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+      const monthBks = allBookings.filter(b =>
+        (b.preferredDate||'').startsWith(thisMonthStr) &&
+        (b.status === 'confirmed' || b.status === 'completed')
+      );
+      const monthVal = monthBks.reduce((s, b) => s + estimateBookingValue(b), 0);
+      document.getElementById('revMonth').textContent = monthVal > 0 ? `€${monthVal}+` : '–';
+      document.getElementById('revMonthSub').textContent = `${monthBks.length} booking${monthBks.length !== 1 ? 's' : ''}`;
+
+      // Upcoming confirmed
+      const upBks = allBookings.filter(b => b.preferredDate > todayStr && b.status === 'confirmed');
+      const upVal = upBks.reduce((s, b) => s + estimateBookingValue(b), 0);
+      document.getElementById('revUpcoming').textContent = upVal > 0 ? `€${upVal}+` : '–';
+      document.getElementById('revUpcomingSub').textContent = `${upBks.length} booked`;
+
+      // All-time completed
+      const doneBks = allBookings.filter(b => b.status === 'completed');
+      const doneVal = doneBks.reduce((s, b) => s + estimateBookingValue(b), 0);
+      document.getElementById('revAllTime').textContent = doneVal > 0 ? `€${doneVal}+` : '–';
+      document.getElementById('revAllTimeSub').textContent = `${doneBks.length} completed`;
+
+      // Monthly breakdown table (last 12 months)
+      const months = [];
+      for (let i = 11; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+        const label = d.toLocaleString('en-IE', { month: 'long', year: 'numeric' });
+        const bks = allBookings.filter(b =>
+          (b.preferredDate||'').startsWith(key) &&
+          (b.status === 'confirmed' || b.status === 'completed')
+        );
+        const val = bks.reduce((s, b) => s + estimateBookingValue(b), 0);
+        months.push({ label, key, count: bks.length, val, isCurrentMonth: key === thisMonthStr });
+      }
+      const maxVal = Math.max(...months.map(m => m.val), 1);
+      document.getElementById('revMonthTable').innerHTML = `
+        <div class="rev-month-table">
+          <div class="rev-month-header">
+            <span>Month</span><span>Bookings</span><span>Est. Revenue</span><span></span>
+          </div>
+          ${months.filter(m => m.count > 0 || m.isCurrentMonth).map(m => `
+            <div class="rev-month-row ${m.isCurrentMonth ? 'rev-current' : ''}">
+              <span>${m.label}${m.isCurrentMonth ? ' <em>(current)</em>' : ''}</span>
+              <span>${m.count}</span>
+              <span style="font-weight:800;color:var(--purple)">${m.val > 0 ? '€' + m.val + '+' : '–'}</span>
+              <div class="rev-bar-track"><div class="rev-bar-fill" style="width:${Math.round((m.val/maxVal)*100)}%"></div></div>
+            </div>`).join('')}
+        </div>`;
+
+      // Revenue by service
+      const svcRev = {};
+      allBookings.filter(b => b.status === 'completed' || b.status === 'confirmed').forEach(b => {
+        const all = [
+          ...(Array.isArray(b.services) ? b.services : (b.service ? [b.service] : [])),
+          ...(Array.isArray(b.addons) ? b.addons : [])
+        ];
+        all.forEach(name => {
+          const svc = allServices.find(s => s.name === name);
+          const val = svc ? parsePrice(svc.price) : 0;
+          if (!svcRev[name]) svcRev[name] = { count: 0, val: 0 };
+          svcRev[name].count++;
+          svcRev[name].val += val;
+        });
+      });
+      const svcSorted = Object.entries(svcRev).sort((a, b) => b[1].val - a[1].val).slice(0, 8);
+      const svcMax = svcSorted.length ? svcSorted[0][1].val : 1;
+      document.getElementById('revSvcChart').innerHTML = svcSorted.length
+        ? svcSorted.map(([name, d]) => `
+            <div class="bar-item">
+              <div class="bar-label">${name}</div>
+              <div class="bar-track"><div class="bar-fill" style="width:${Math.round((d.val/svcMax)*100)}%"></div></div>
+              <div class="bar-count" style="min-width:60px;text-align:right;">${d.val > 0 ? '€'+d.val+'+' : ''} <span style="color:var(--grey-text);font-weight:400;font-size:0.72rem;">(×${d.count})</span></div>
+            </div>`).join('')
+        : '<p style="color:var(--grey-text);text-align:center;">No completed bookings yet.</p>';
+    }
+
+    // ─── SHARED PRICE UTILITIES ───────────────────────────────
+    function parsePrice(priceStr) {
+      if (!priceStr) return 0;
+      const m = priceStr.match(/(\d+)/);
+      return m ? parseInt(m[1]) : 0;
+    }
+    function estimateBookingValue(b) {
+      let total = 0;
+      const svcs = Array.isArray(b.services) ? b.services : (b.service ? [b.service] : []);
+      svcs.forEach(name => {
+        const s = allServices.find(x => x.name === name);
+        if (s) total += parsePrice(s.price);
+      });
+      if (Array.isArray(b.addons)) {
+        b.addons.forEach(name => {
+          const s = allServices.find(x => x.name === name);
+          if (s) total += parsePrice(s.price);
+        });
+      }
+      return total;
     }
 
     // ─── TABS ──────────────────────────────────────────────────
@@ -1029,6 +1165,7 @@
       <button class="admin-tab-btn" data-tab="calendar" onclick="switchTab('calendar')">📅 Calendar</button>
       <button class="admin-tab-btn" data-tab="settings" onclick="switchTab('settings')">⚙️ Settings</button>
       <button class="admin-tab-btn" data-tab="metrics" onclick="switchTab('metrics')">📊 Metrics</button>
+      <button class="admin-tab-btn" data-tab="revenue" onclick="switchTab('revenue')">💰 Revenue</button>
     </div>
 
     <!-- ─── TAB: BOOKINGS ──────────────────────────────────── -->
@@ -1257,6 +1394,58 @@
       </div>
     </div>
 
+    <!-- ─── TAB: REVENUE ─────────────────────────────────────── -->
+    <div class="tab-panel" id="tab-revenue">
+      <h3 style="color:var(--purple);margin-bottom:6px;">💰 Revenue Overview</h3>
+      <p style="color:var(--grey-text);font-size:0.85rem;margin-bottom:24px;">Estimated from service prices in your system. Marked with + as prices are minimum figures.</p>
+
+      <!-- Top revenue cards -->
+      <div class="rev-cards">
+        <div class="rev-card rev-today">
+          <div class="rev-card-icon">📅</div>
+          <div class="rev-card-label">Today</div>
+          <div class="rev-card-num" id="revToday">–</div>
+          <div class="rev-card-sub" id="revTodaySub"></div>
+        </div>
+        <div class="rev-card rev-week">
+          <div class="rev-card-icon">📆</div>
+          <div class="rev-card-label">This Week</div>
+          <div class="rev-card-num" id="revWeek">–</div>
+          <div class="rev-card-sub" id="revWeekSub"></div>
+        </div>
+        <div class="rev-card rev-month">
+          <div class="rev-card-icon">🗓️</div>
+          <div class="rev-card-label">This Month</div>
+          <div class="rev-card-num" id="revMonth">–</div>
+          <div class="rev-card-sub" id="revMonthSub"></div>
+        </div>
+        <div class="rev-card rev-upcoming">
+          <div class="rev-card-icon">🔮</div>
+          <div class="rev-card-label">Upcoming (Confirmed)</div>
+          <div class="rev-card-num" id="revUpcoming">–</div>
+          <div class="rev-card-sub" id="revUpcomingSub"></div>
+        </div>
+        <div class="rev-card rev-alltime">
+          <div class="rev-card-icon">🏆</div>
+          <div class="rev-card-label">All Time (Completed)</div>
+          <div class="rev-card-num" id="revAllTime">–</div>
+          <div class="rev-card-sub" id="revAllTimeSub"></div>
+        </div>
+      </div>
+
+      <!-- Monthly breakdown table -->
+      <div class="rev-section">
+        <h4>Month-by-Month Breakdown</h4>
+        <div id="revMonthTable"></div>
+      </div>
+
+      <!-- Top services by revenue -->
+      <div class="rev-section">
+        <h4>Revenue by Service</h4>
+        <div class="bar-chart" id="revSvcChart"></div>
+      </div>
+    </div>
+
   </div><!-- /admin-container -->
 </div><!-- /dashboard -->
 
@@ -1379,11 +1568,15 @@
           </select>
         </div>
         <div class="form-group">
-          <label>Service *</label>
+          <label>Main Service *</label>
           <select id="qaServices" required>
             <option value="">Loading…</option>
           </select>
         </div>
+      </div>
+      <div class="form-group" id="qaAddonsWrapper" style="display:none;">
+        <label>Add-Ons <span style="font-weight:500;text-transform:none;letter-spacing:0;">(optional)</span></label>
+        <div id="qaAddonsGrid" class="qa-addons-grid"></div>
       </div>
       <div class="form-row">
         <div class="form-group">
@@ -1646,7 +1839,7 @@ body.admin-body { background: #f7f0fc; min-height: 100vh; padding: 0; margin: 0;
   border-radius: 12px; padding: 14px 16px; margin-bottom: 4px;
 }
 .customer-booking-row {
-  display: grid; grid-template-columns: 110px 1fr auto auto; align-items: center;
+  display: grid; grid-template-columns: 110px 1fr auto auto auto; align-items: center;
   gap: 10px; background: #faf5ff; border-radius: 10px; padding: 10px 14px;
   font-size: 0.85rem;
 }
@@ -1695,6 +1888,19 @@ body.admin-body { background: #f7f0fc; min-height: 100vh; padding: 0; margin: 0;
 }
 .qa-suggest-card:hover { border-color: var(--pink); background: var(--pink-pale); }
 
+/* ─── Quick-add add-ons grid ─────────────────────────────────────── */
+.qa-addons-grid { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 4px; }
+.qa-addon-label {
+  display: flex; align-items: center; gap: 7px;
+  background: white; border: 2px solid #e8d5f0; border-radius: 20px;
+  padding: 6px 14px; font-size: 0.83rem; font-weight: 600; cursor: pointer;
+  transition: all 0.15s; color: var(--purple);
+}
+.qa-addon-label:hover { border-color: var(--pink); background: var(--pink-pale); }
+.qa-addon-label input[type="checkbox"] { accent-color: var(--pink); width: 15px; height: 15px; }
+.qa-addon-label input:checked ~ span { color: var(--pink); }
+.qa-addon-price { color: var(--pink); font-weight: 700; font-size: 0.78rem; }
+
 /* ─── Quick-add modal form fields ────────────────────────────────── */
 #quickAddModal .form-group select,
 #quickAddModal .form-group input,
@@ -1709,6 +1915,37 @@ body.admin-body { background: #f7f0fc; min-height: 100vh; padding: 0; margin: 0;
 #quickAddModal .form-group { margin-bottom: 14px; }
 #quickAddModal .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 
+/* ─── Revenue tab ────────────────────────────────────────────────── */
+.rev-cards {
+  display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 28px;
+}
+.rev-card {
+  border-radius: 16px; padding: 20px 16px; text-align: center;
+  box-shadow: 0 2px 12px rgba(74,16,64,0.07); display: flex; flex-direction: column; align-items: center; gap: 4px;
+}
+.rev-card-icon { font-size: 1.5rem; margin-bottom: 2px; }
+.rev-card-label { font-size: 0.68rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: var(--grey-text); }
+.rev-card-num { font-size: 1.8rem; font-weight: 900; color: var(--purple); line-height: 1; margin: 4px 0 2px; }
+.rev-card-sub { font-size: 0.75rem; color: var(--grey-text); font-weight: 600; }
+.rev-today  { background: #fff7ed; border: 2px solid #fed7aa; }
+.rev-week   { background: var(--pink-pale); border: 2px solid var(--pink); }
+.rev-month  { background: #f0fdf4; border: 2px solid #bbf7d0; }
+.rev-upcoming { background: #eff6ff; border: 2px solid #bfdbfe; }
+.rev-alltime  { background: #f5f3ff; border: 2px solid #ddd6fe; }
+.rev-section {
+  background: white; border-radius: 16px; padding: 24px; margin-bottom: 20px;
+  box-shadow: 0 2px 10px rgba(74,16,64,0.06);
+}
+.rev-section h4 { font-size: 0.82rem; color: var(--purple); margin: 0 0 18px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 2px solid var(--pink-pale); padding-bottom: 10px; }
+.rev-month-table { display: flex; flex-direction: column; gap: 0; }
+.rev-month-header { display: grid; grid-template-columns: 1fr 80px 120px 160px; gap: 12px; padding: 6px 12px; font-size: 0.72rem; font-weight: 800; color: var(--grey-text); text-transform: uppercase; letter-spacing: 0.05em; }
+.rev-month-row { display: grid; grid-template-columns: 1fr 80px 120px 160px; gap: 12px; padding: 10px 12px; align-items: center; border-radius: 10px; font-size: 0.88rem; transition: background 0.15s; }
+.rev-month-row:hover { background: var(--pink-pale); }
+.rev-month-row.rev-current { background: #fef9c3; font-weight: 700; }
+.rev-month-row em { font-style: normal; font-size: 0.72rem; color: var(--grey-text); }
+.rev-bar-track { background: #f3e8ff; border-radius: 20px; height: 10px; overflow: hidden; }
+.rev-bar-fill { background: linear-gradient(90deg, var(--pink) 0%, var(--purple-mid) 100%); height: 100%; border-radius: 20px; transition: width 0.6s; min-width: 4px; }
+
 /* ─── Mobile ─────────────────────────────────────────────────────── */
 @media (max-width: 900px) {
   .settings-grid { grid-template-columns: 1fr; }
@@ -1720,6 +1957,8 @@ body.admin-body { background: #f7f0fc; min-height: 100vh; padding: 0; margin: 0;
   .admin-topbar { padding: 12px 16px; }
   .admin-container { padding: 16px 12px 40px; }
   .revenue-strip { grid-template-columns: 1fr; }
+  .rev-cards { grid-template-columns: repeat(2, 1fr); }
+  .rev-month-header, .rev-month-row { grid-template-columns: 1fr 60px 90px 80px; gap: 8px; }
   #quickAddModal .form-row { grid-template-columns: 1fr; }
   .customer-booking-row { grid-template-columns: 90px 1fr auto auto; gap: 6px; }
 }
@@ -1738,6 +1977,10 @@ body.admin-body { background: #f7f0fc; min-height: 100vh; padding: 0; margin: 0;
   .bar-item { grid-template-columns: 70px 1fr 28px; gap: 6px; }
   .unavail-add-row { flex-direction: column; }
   .revenue-strip { grid-template-columns: 1fr; gap: 10px; }
+  .rev-cards { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .rev-month-header { display: none; }
+  .rev-month-row { grid-template-columns: 1fr auto auto; }
+  .rev-bar-track { display: none; }
   .heatmap-row { grid-template-columns: 36px repeat(7, 1fr); gap: 2px; }
   .heatmap-cell { height: 28px; font-size: 0.65rem; }
   .customer-history-box { padding: 16px; }
