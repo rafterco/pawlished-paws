@@ -43,7 +43,7 @@
        grid.innerHTML = mainServices.map(s => `
          <div class="service-card ${s.popular ? 'popular' : ''}">
            ${s.popular ? '<div class="popular-badge">Most Popular</div>' : ''}
-           <div class="service-icon"></div>
+          
            <h3>${s.name}</h3>
            <p>${s.description || ''}</p>
            ${s.includes && s.includes.length ? `<ul class="service-includes">${s.includes.slice(0,3).map(i => `<li>${i}</li>`).join('')}</ul>` : ''}
@@ -72,7 +72,7 @@
  <li><a href="services.html">Services</a></li>
  <li><a href="booking.html">Book</a></li>
  <li><a href="contact.html">Contact</a></li>
- <li><a href="booking.html" class="btn btn-primary nav-cta">Book Now </a></li>
+ <li><a href="booking.html" class="btn btn-primary nav-cta">Book Now</a></li>
  </ul>
  <button class="hamburger" id="hamburger" aria-label="Menu">
  <span></span><span></span><span></span>
@@ -121,7 +121,17 @@
  <li>Based in Enniscrone, Co. Sligo</li>
  </ul>
  </div>
- <div class="about-image-placeholder"></div>
+ <div class="about-info-box">
+   <h3>Opening Hours</h3>
+   <div class="about-info-row"><span class="day">Monday – Friday</span><span class="hours">08:00 – 17:30</span></div>
+   <div class="about-info-row"><span class="day">Saturday</span><span class="closed">Closed</span></div>
+   <div class="about-info-row"><span class="day">Sunday</span><span class="closed">Closed</span></div>
+   <div class="about-info-row"><span class="day">📍 Address</span><span class="hours" style="font-size:0.85rem;text-align:right;">Carrowhubbuck South,<br>Inishcrone, Ireland</span></div>
+   <div class="about-cta-box">
+     <span>Ready to book your pup in?</span>
+     <a href="booking.html" class="btn btn-primary" style="padding:10px 20px;font-size:0.88rem;">Book Online</a>
+   </div>
+ </div>
  </div>
  </div>
 
@@ -135,7 +145,7 @@
  <div class="services-grid" id="servicesGrid">
 
  <div class="service-card">
- <div class="service-icon"></div>
+
  <h3>Bath & Brush</h3>
  <p>A thorough wash and blow-dry to leave your dog clean, fluffy, and smelling great.</p>
  <ul class="service-includes">
@@ -150,7 +160,7 @@
 
  <div class="service-card popular">
  <div class="popular-badge">Most Popular</div>
- <div class="service-icon"></div>
+
  <h3>Full Groom</h3>
  <p>The full works — bath, trim, shape, and finish. Your dog will leave looking and feeling their best.</p>
  <ul class="service-includes">
@@ -164,7 +174,7 @@
  </div>
 
  <div class="service-card">
- <div class="service-icon"></div>
+
  <h3>Puppy's First Groom</h3>
  <p>A gentle introduction to grooming for puppies — building positive associations from the very start.</p>
  <ul class="service-includes">
@@ -178,7 +188,7 @@
  </div>
 
  <div class="service-card">
- <div class="service-icon"></div>
+
  <h3>Tidy Up</h3>
  <p>Between full grooms? A quick tidy of the face, paws, and sanitary areas keeps things neat.</p>
  <ul class="service-includes">
@@ -205,22 +215,22 @@
  </div>
  <div class="why-grid">
  <div class="why-card">
- <div class="why-icon"></div>
+ <div class="why-card-icon">🏡</div>
  <h3>Quiet Studio</h3>
  <p>No busy salon noise. Our calm, home-based studio helps anxious dogs feel at ease from the moment they arrive.</p>
  </div>
  <div class="why-card">
- <div class="why-icon"></div>
+ <div class="why-card-icon">🐾</div>
  <h3>One Dog at a Time</h3>
  <p>Your dog has our undivided attention throughout their entire appointment. No cages, no waiting around.</p>
  </div>
  <div class="why-card">
- <div class="why-icon"></div>
+ <div class="why-card-icon">❤️</div>
  <h3>Genuinely Dog-Focused</h3>
  <p>We go at your dog's pace. If they need a break, they get one. Their comfort always comes first.</p>
  </div>
  <div class="why-card">
- <div class="why-icon"></div>
+ <div class="why-card-icon">📍</div>
  <h3>Local to Enniscrone</h3>
  <p>Right here in Carrowhubbuck South — a convenient, friendly local option for dogs across north Co. Sligo.</p>
  </div>
@@ -235,10 +245,10 @@
  </div>
  <div class="testimonials-grid">
  <div class="testimonial-card">
- <div class="stars"></div>
+ <div class="stars">★★★★★</div>
  <p>"Absolutely brilliant with our collie — she used to hate being groomed but came back so relaxed and beautifully done. Will never go anywhere else!"</p>
  <div class="reviewer">
- <div class="reviewer-avatar"></div>
+ <div class="reviewer-avatar">SM</div>
  <div>
  <div class="reviewer-name">Sarah M.</div>
  <div class="reviewer-sub">Enniscrone</div>
@@ -246,10 +256,10 @@
  </div>
  </div>
  <div class="testimonial-card">
- <div class="stars"></div>
+ <div class="stars">★★★★★</div>
  <p>"Took my anxious rescue in for the first time and he was treated with such patience and kindness. The quiet setting made all the difference. Highly recommend!"</p>
  <div class="reviewer">
- <div class="reviewer-avatar"></div>
+ <div class="reviewer-avatar">DF</div>
  <div>
  <div class="reviewer-name">Declan F.</div>
  <div class="reviewer-sub">Ballina</div>
@@ -257,10 +267,10 @@
  </div>
  </div>
  <div class="testimonial-card">
- <div class="stars"></div>
+ <div class="stars">★★★★★</div>
  <p>"Our doodle came back looking like a show dog! Great value, super friendly, and you can tell they genuinely care about the animals. Brilliant local find."</p>
  <div class="reviewer">
- <div class="reviewer-avatar"></div>
+ <div class="reviewer-avatar">CO</div>
  <div>
  <div class="reviewer-name">Claire O'B.</div>
  <div class="reviewer-sub">Skreen</div>
@@ -299,7 +309,7 @@
  </div>
  <div class="footer-col">
  <h4>Get In Touch</h4>
- <div class="footer-contact-item"> Carrowhubbuck South, Inishcrone, Ireland</div>
+ <div class="footer-contact-item">📍 Carrowhubbuck South, Inishcrone, Ireland</div>
  <div class="footer-contact-item"> <a href="tel:+353858168317">+353 85 816 8317</a></div>
  <div class="footer-contact-item"> <a href="mailto:hello.pawlishedpaws@gmail.com">hello.pawlishedpaws@gmail.com</a></div>
  <div class="footer-contact-item" style="margin-top:8px;">
@@ -309,7 +319,7 @@
  </div>
  <div class="footer-bottom">
  <span>© 2025 Pawlished Paws. All rights reserved.</span>
- <span>Made with in Enniscrone, Ireland</span>
+ <span>Made with ❤️ in Enniscrone, Ireland</span>
  </div>
  </footer>
 
